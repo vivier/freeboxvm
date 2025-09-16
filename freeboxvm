@@ -1,6 +1,6 @@
 #!/bin/python
 import os, sys
-import requests, json
+import requests, json, argparse
 import hashlib, hmac
 import time
 import platform
@@ -151,7 +151,7 @@ def freebox_connect():
         return None
     return login_data['session_token'] if login_data else None
 
-async def console(session_token, vm_id):
+async def console_link(session_token, vm_id):
     url = f"wss://mafreebox.freebox.fr/api/v8/vm/{vm_id}/console"
 
     # TLS verification
@@ -214,28 +214,91 @@ def raw_terminal():
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
-def main():
-    session_token = freebox_connect()
-    if not session_token:
-        print("Freebox inaccessible.")
-        return
-
+def get_vm_list(session_token):
     vm_list = api_request("get", "/vm/", session_token)
+    return vm_list
+
+def list(session_token):
+    vm_list = get_vm_list(session_token)
     if not vm_list:
         print("Pas de VM disponible", file=sys.stderr)
 
+    print("ID\tSTATUS\tNAME")
     for vm in vm_list:
-        print(f"{vm['id']}: {vm['name']} {vm['status']}")
+        print(f"{vm['id']}\t{vm.get('status')}\t{vm.get('name')}")
 
-    vm_id, vm_name = next(((vm["id"], vm["name"]) for vm in vm_list if vm.get("status") == "running"), (vm_list[0]["id"],vm_list[0]["name"]))
+def select_vm(vm_list, selector: str | None):
+    if not vm_list:
+        return None
+
+    if selector is None:
+        return next((vm for vm in vm_list if vm["status"] == "running"), vm_list[0])
+
+    try:
+        wanted_id = int(selector)
+        match = next((vm for vm in vm_list if int(vm["id"]) == wanted_id), None)
+        if match:
+            return match
+    except ValueError:
+        pass
+
+    matches = [ vm for vm in vm_list if selector == vm["name"]]
+    if len(matches) == 1:
+        return matches[0]
+
+    if len(matches) > 1:
+        print("Multiple matches:", file=sys.stderr)
+        for vm in matches:
+            print(f"  {vm['id']}: {vm['name']} {vm.get('status')}", file=sys.stderr)
+        return None
+
+    return None
+
+def console(session_token, args):
+    vm_list = get_vm_list(session_token)
+    if not vm_list:
+        print("Pas de VM disponible", file=sys.stderr)
+
+    vm = select_vm(vm_list, args.vm)
+    if not vm:
+        print("VM non trouvé. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
+        sys.exit(1)
+
+    vm_id, vm_name = vm["id"], vm["name"]
+
     print(f"Connexion à la consolde de {vm_id} ({vm_name}), Ctrl-A D pour sortir...",
           file=sys.stderr)
 
     with raw_terminal():
         try:
-            asyncio.run(console(session_token, vm_id))
+            asyncio.run(console_link(session_token, vm_id))
         except KeyboardInterrupt:
             pass
+
+def parse_args():
+    p = argparse.ArgumentParser(prog="freeboxvm", description="Freebox VM manager")
+
+    sub = p.add_subparsers(dest="cmd", required=True)
+    sp_list = sub.add_parser("list", help="List VMs")
+    sp_console = sub.add_parser("console", help="Open VM console")
+    sp_console.add_argument("vm", nargs="?", help="VM id or name; default = first running")
+
+    return p.parse_args()
+
+def main():
+
+    args = parse_args()
+
+    session_token = freebox_connect()
+    if not session_token:
+        print("Freebox inaccessible.")
+        return
+
+    if args.cmd == "list":
+        list(session_token)
+
+    if args.cmd == "console":
+        console(session_token, args)
 
 if __name__ == "__main__":
     main()

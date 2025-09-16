@@ -21,13 +21,25 @@ pip install -r requirements.txt
 
 ## Usage
 
+### List VMs
 ```bash
-python3 freeboxvm
+freeboxvm list
 ```
 
-- On first run, authorize the application on the Freebox.
-- Lists available VMs with their ID, name, and status.
-- Opens a console to a running VM (or first available VM).
+Example:
+```
+ID      STATUS  NAME
+0       running Debian-11
+1       stopped Ubuntu-22.04
+```
+
+### Connect to a VM console
+```bash
+freeboxvm console [id|name]
+```
+
+- If no argument is provided, connects to the first running VM (or the first in
+  the list).
 - Exit with **Ctrl+C** or **Ctrl-A D**.
 - Send a literal **Ctrl-A** to the VM with **Ctrl-A A**.
 
