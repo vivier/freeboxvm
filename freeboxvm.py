@@ -1,0 +1,228 @@
+#!/bin/python
+import os, sys
+import requests, json
+import hashlib, hmac
+import time
+import platform
+import signal, threading
+from contextlib import contextmanager
+import termios, tty
+from websocket import create_connection, ABNF
+import ssl
+
+APP_ID		= "freeboxvm"
+APP_NAME	= "Freebox VM manager"
+APP_VERSION	= "0.0.1"
+DEVICE_NAME	= platform.node()
+
+API_URL		= f"http://mafreebox.freebox.fr/api/v8"
+
+TOKEN_FILE = "freeboxvm_token.json"
+
+def load_app_token():
+    """Load persisted Freebox application token and track_id from disk.
+
+    Returns
+    -------
+    tuple[str|None, str|None]
+        (app_token, track_id) if present; (None, None) otherwise.
+    """
+    if os.path.exists(TOKEN_FILE):
+        with open(TOKEN_FILE, "r") as file:
+            data = json.load(file)
+            return data["app_token"], data["track_id"]
+    return None, None
+
+def save_app_token(app_token, track_id):
+    """Persist Freebox application token and track_id to disk.
+
+    Parameters
+    ----------
+    app_token : str
+        Token issued by the Freebox authorization step.
+    track_id : str
+        Tracking identifier returned by the authorization API.
+    """
+    with open(TOKEN_FILE, "w") as file:
+        json.dump({"app_token": app_token, "track_id": track_id}, file)
+
+def api_request(method, endpoint, session_token=None, **kwargs):
+    """Call a Freebox OS API endpoint and return its `result` payload.
+
+    Parameters
+    ----------
+    method : str
+        HTTP verb, e.g. 'get', 'post'.
+    endpoint : str
+        API path beginning with '/'.
+    session_token : str | None
+        Optional session token to send as 'X-Fbx-App-Auth'.
+    **kwargs : dict
+        Extra arguments forwarded to `requests.request` (json=data, params, etc.).
+
+    Returns
+    -------
+    Any | str | None
+        The `result` field on success; the string 'forbidden' on HTTP 403;
+        or None on network/JSON errors.
+
+    Side Effects
+    ------------
+    Logs API/network/JSON errors to journald.
+    """
+    headers = {}
+    if session_token:
+        headers["X-Fbx-App-Auth"] = session_token
+
+    try:
+        response = requests.request(method, f"{API_URL}{endpoint}", headers=headers,
+                                    timeout=5, **kwargs)
+        response.raise_for_status()
+        data = response.json()
+        if data.get('success'):
+            return data.get('result')
+        else:
+            print(f"Erreur d'API sur {endpoint}: {data.get('msg')}")
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 403:
+            return "forbidden" # Return a special string for 403 errors
+        else:
+            print(f"Erreur HTTP sur {endpoint}: {e}")
+    except requests.exceptions.RequestException as e:
+        print(f"Erreur de réseau sur {endpoint}: {e}")
+    except json.JSONDecodeError:
+        print(f"Erreur de décodage JSON sur {endpoint}")
+    return None
+
+def freebox_connect():
+    """Establish a Freebox OS API session token.
+
+    1) Load stored app token/track_id; otherwise request authorization and poll
+       until the user approves the app on the Freebox.
+    2) Compute HMAC-SHA1 password from challenge and app_token.
+    3) Open a login session and return the session token.
+
+    Returns
+    -------
+    str | None
+        A valid session token, or None if the flow fails.
+
+    Side Effects
+    ------------
+    May persist the app token to disk. Logs status messages to journald.
+    """
+    # Charger le token depuis le fichier ou obtenir une nouvelle autorisation
+    app_token, track_id = load_app_token()
+    if not app_token or not track_id:
+        auth_data = api_request("post", "/login/authorize/", json={
+            "app_id": APP_ID, "app_name": APP_NAME,
+            "app_version": APP_VERSION, "device_name": DEVICE_NAME
+        })
+        if not auth_data: return None
+        track_id, app_token = auth_data['track_id'], auth_data['app_token']
+        save_app_token(app_token, track_id)
+        print("Veuillez accepter l'application sur la Freebox")
+        max_retries = 24
+        for i in range(max_retries):
+            status_data = api_request("get", f"/login/authorize/{track_id}")
+            status = status_data.get('status') if status_data else None
+            if status == 'granted':
+                print("Autorisation approuvée.")
+                break
+            elif status == 'pending':
+                print("En attente d'autorisation...")
+                time.sleep(5)
+            else:
+                print(f"Echec d'autorisation avec le status: {status}")
+                return None
+        else:
+            print("Epuisement du délai d'attente d'autorisation après 2 minutes.")
+            return None
+
+    challenge_data = api_request("get", f"/login/authorize/{track_id}")
+    if not challenge_data or not isinstance(challenge_data, dict):
+        print("Echec pour gagner le challenge, le token doit être invalide.")
+        return None
+    challenge = challenge_data['challenge']
+    password = hmac.new(app_token.encode(), challenge.encode(), hashlib.sha1).hexdigest()
+
+    login_data = api_request("post", "/login/session/", json={"app_id": APP_ID, "password": password})
+    if login_data == "forbidden":
+        print(f"Fichier token invalide {TOKEN_FILE}")
+        return None
+    return login_data['session_token'] if login_data else None
+
+@contextmanager
+def raw_terminal():
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        yield
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+def stdin_to_ws(ws):
+    """Read bytes from stdin and send to websocket."""
+    try:
+        while True:
+            data = sys.stdin.buffer.read1(1024) if hasattr(sys.stdin.buffer, "read1") else sys.stdin.buffer.read(1)
+            if not data:
+                break
+            ws.send(data, opcode=ABNF.OPCODE_BINARY)
+    except Exception:
+        pass
+    finally:
+        try:
+            ws.close()
+        except Exception:
+            pass
+
+def ws_to_stdout(ws):
+    """Read frames from websocket and write to stdout."""
+    try:
+        while True:
+            frame = ws.recv_frame()
+            if frame is None:
+                break
+            if frame.opcode in (ABNF.OPCODE_TEXT, ABNF.OPCODE_BINARY):
+                sys.stdout.buffer.write(frame.data)
+                sys.stdout.buffer.flush()
+            elif frame.opcode == ABNF.OPCODE_CLOSE:
+                break
+    except Exception:
+        pass
+
+def main():
+    def handle_sigint(signum, frame):
+        try:
+            sys.stdout.flush()
+        finally:
+            os._exit(0)
+    signal.signal(signal.SIGINT, handle_sigint)
+
+    session_token = freebox_connect()
+    if not session_token:
+        print("Freebox inaccessible.")
+        return
+
+    vm_list = api_request("get", "/vm/", session_token)
+    if not vm_list:
+        print("Pas de VM disponible", file=sys.stderr)
+
+    for vm in vm_list:
+        print(f"{vm['id']}: {vm['name']} {vm['status']}")
+
+    vm_id = 0
+
+    with raw_terminal():
+        ws = create_connection(f"wss://mafreebox.freebox.fr/api/v8/vm/{vm_id}/console",
+                               header=[f"X-Fbx-App-Auth: {session_token}"],
+                               sslopt={"cert_reqs": ssl.CERT_NONE})
+        t_in = threading.Thread(target=stdin_to_ws, args=(ws,), daemon=True)
+        t_in.start()
+
+        ws_to_stdout(ws)
+
+if __name__ == "__main__":
+    main()
