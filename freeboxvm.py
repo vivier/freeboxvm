@@ -6,8 +6,8 @@ import time
 import platform
 import signal, threading
 from contextlib import contextmanager
-import termios, tty
-from websocket import create_connection, ABNF
+import asyncio
+from websockets.asyncio.client import connect
 import ssl
 
 APP_ID		= "freeboxvm"
@@ -152,8 +152,42 @@ def freebox_connect():
         return None
     return login_data['session_token'] if login_data else None
 
+async def console(session_token, vm_id):
+    url = f"wss://mafreebox.freebox.fr/api/v8/vm/{vm_id}/console"
+
+    # TLS verification
+    ssl_ctx = ssl.create_default_context()
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = ssl.CERT_NONE
+    async with connect(
+        url,
+        additional_headers={"X-Fbx-App-Auth": session_token},
+        subprotocols=['binary'],
+        ssl=ssl_ctx
+    ) as ws:
+        loop = asyncio.get_running_loop()
+
+        async def rx():
+            async for msg in ws:
+                if isinstance(msg, str):
+                    sys.stdout.write(msg)
+                else:
+                    sys.stdout.buffer.write(msg)
+                sys.stdout.flush()
+
+        async def tx():
+            while True:
+                data = await loop.run_in_executor(None, sys.stdin.buffer.read, 1)
+                if not data:
+                    break
+                await ws.send(data)
+
+        await asyncio.gather(rx(), tx())
+
 @contextmanager
 def raw_terminal():
+    import termios, tty
+
     fd = sys.stdin.fileno()
     old = termios.tcgetattr(fd)
     try:
@@ -162,44 +196,8 @@ def raw_terminal():
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
-def stdin_to_ws(ws):
-    """Read bytes from stdin and send to websocket."""
-    try:
-        while True:
-            data = sys.stdin.buffer.read1(1024) if hasattr(sys.stdin.buffer, "read1") else sys.stdin.buffer.read(1)
-            if not data:
-                break
-            ws.send(data, opcode=ABNF.OPCODE_BINARY)
-    except Exception:
-        pass
-    finally:
-        try:
-            ws.close()
-        except Exception:
-            pass
-
-def ws_to_stdout(ws):
-    """Read frames from websocket and write to stdout."""
-    try:
-        while True:
-            frame = ws.recv_frame()
-            if frame is None:
-                break
-            if frame.opcode in (ABNF.OPCODE_TEXT, ABNF.OPCODE_BINARY):
-                sys.stdout.buffer.write(frame.data)
-                sys.stdout.buffer.flush()
-            elif frame.opcode == ABNF.OPCODE_CLOSE:
-                break
-    except Exception:
-        pass
-
 def main():
-    def handle_sigint(signum, frame):
-        try:
-            sys.stdout.flush()
-        finally:
-            os._exit(0)
-    signal.signal(signal.SIGINT, handle_sigint)
+    signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
 
     session_token = freebox_connect()
     if not session_token:
@@ -213,16 +211,12 @@ def main():
     for vm in vm_list:
         print(f"{vm['id']}: {vm['name']} {vm['status']}")
 
-    vm_id = 0
+    vm_id, vm_name = next(((vm["id"], vm["name"]) for vm in vm_list if vm.get("status") == "running"), (vm_list[0]["id"],vm_list[0]["name"]))
+    print(f"Connexion à la consolde de {vm_id} ({vm_name}), Ctrl-A D pour sortir...",
+          file=sys.stderr)
 
     with raw_terminal():
-        ws = create_connection(f"wss://mafreebox.freebox.fr/api/v8/vm/{vm_id}/console",
-                               header=[f"X-Fbx-App-Auth: {session_token}"],
-                               sslopt={"cert_reqs": ssl.CERT_NONE})
-        t_in = threading.Thread(target=stdin_to_ws, args=(ws,), daemon=True)
-        t_in.start()
-
-        ws_to_stdout(ws)
+        asyncio.run(console(session_token, vm_id))
 
 if __name__ == "__main__":
     main()

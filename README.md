@@ -9,7 +9,7 @@ via the Freebox OS API v8.
 
 - Python 3.8+
 - Freebox with Freebox OS v8 API
-- Packages: requests, websocket-client
+- Packages: requests, websockets
 
 Install with:
 
@@ -27,7 +27,7 @@ python3 freeboxvm.py
 
 - On first run, authorize the application on the Freebox.
 - Lists available VMs with their ID, name, and status.
-- Opens a console to VM ID 0.
+- Opens a console to a running VM (or first available VM).
 - Exit with Ctrl+C.
 
 ---
