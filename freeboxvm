@@ -4,7 +4,6 @@ import requests, json
 import hashlib, hmac
 import time
 import platform
-import signal, threading
 from contextlib import contextmanager
 import asyncio
 from websockets.asyncio.client import connect
@@ -167,6 +166,10 @@ async def console(session_token, vm_id):
     ) as ws:
         loop = asyncio.get_running_loop()
 
+        CTRL_A = b"\x01"              # Ctrl-A
+        DETACH_KEYS = { b"d", b"D" } # Ctrl-A D
+        PASSTHRU_KEYS = { b"a", b"A" } # Ctrl-A A
+
         async def rx():
             async for msg in ws:
                 if isinstance(msg, str):
@@ -176,11 +179,26 @@ async def console(session_token, vm_id):
                 sys.stdout.flush()
 
         async def tx():
+            waiting_cmd = False
             while True:
                 data = await loop.run_in_executor(None, sys.stdin.buffer.read, 1)
                 if not data:
                     break
-                await ws.send(data)
+                if waiting_cmd:
+                    waiting_cmd = False
+                    if data in DETACH_KEYS:
+                        await ws.close()
+                        return
+                    elif data in PASSTHRU_KEYS:
+                        await ws.send(CTRL_A)
+                    else:
+                        await ws.send(CTRL_A + data)
+                    continue
+
+                if data == CTRL_A:
+                    waiting_cmd = True
+                else:
+                    await ws.send(data)
 
         await asyncio.gather(rx(), tx())
 
@@ -197,8 +215,6 @@ def raw_terminal():
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 def main():
-    signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
-
     session_token = freebox_connect()
     if not session_token:
         print("Freebox inaccessible.")
@@ -216,7 +232,10 @@ def main():
           file=sys.stderr)
 
     with raw_terminal():
-        asyncio.run(console(session_token, vm_id))
+        try:
+            asyncio.run(console(session_token, vm_id))
+        except KeyboardInterrupt:
+            pass
 
 if __name__ == "__main__":
     main()

@@ -22,13 +22,14 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-python3 freeboxvm.py
+python3 freeboxvm
 ```
 
 - On first run, authorize the application on the Freebox.
 - Lists available VMs with their ID, name, and status.
 - Opens a console to a running VM (or first available VM).
-- Exit with Ctrl+C.
+- Exit with **Ctrl+C** or **Ctrl-A D**.
+- Send a literal **Ctrl-A** to the VM with **Ctrl-A A**.
 
 ---
 
