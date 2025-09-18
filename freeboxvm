@@ -227,7 +227,8 @@ def list(session_token):
     for vm in vm_list:
         print(f"{vm['id']}\t{vm.get('status')}\t{vm.get('name')}")
 
-def select_vm(vm_list, selector: str | None):
+def select_vm(session_token, selector: str | None):
+    vm_list = get_vm_list(session_token)
     if not vm_list:
         return None
 
@@ -255,18 +256,15 @@ def select_vm(vm_list, selector: str | None):
     return None
 
 def console(session_token, args):
-    vm_list = get_vm_list(session_token)
-    if not vm_list:
-        print("Pas de VM disponible", file=sys.stderr)
 
-    vm = select_vm(vm_list, args.vm)
+    vm = select_vm(session_token, args.vm)
     if not vm:
         print("VM non trouvé. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
         sys.exit(1)
 
     vm_id, vm_name = vm["id"], vm["name"]
 
-    print(f"Connexion à la consolde de {vm_id} ({vm_name}), Ctrl-A D pour sortir...",
+    print(f"Connexion à la console de '{vm_name}' (VM #{vm_id}), Ctrl-A D pour sortir...",
           file=sys.stderr)
 
     with raw_terminal():
@@ -275,6 +273,50 @@ def console(session_token, args):
         except KeyboardInterrupt:
             pass
 
+def poweron(session_token, args):
+
+    vm = select_vm(session_token, args.vm)
+    if not vm:
+        print("VM non trouvé. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
+        sys.exit(1)
+
+    vm_id, vm_name = vm["id"], vm["name"]
+
+    print(f"Démarrage de '{vm_name}' (VM #{vm_id})",
+          file=sys.stderr)
+
+    api_request("post", f"/vm/{vm_id}/start", session_token)
+
+def poweroff(session_token, args):
+    vm = select_vm(session_token, args.vm)
+    if not vm:
+        print("VM non trouvé. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
+        sys.exit(1)
+
+    vm_id, vm_name = vm["id"], vm["name"]
+
+    print(f"Extinction de '{vm_name}' (VM #{vm_id})",
+          file=sys.stderr)
+
+    if args.force:
+        api_request("post", f"/vm/{vm_id}/stop", session_token)
+    else:
+        api_request("post", f"/vm/{vm_id}/powerbutton", session_token)
+
+def reset(session_token, args):
+
+    vm = select_vm(session_token, args.vm)
+    if not vm:
+        print("VM non trouvé. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
+        sys.exit(1)
+
+    vm_id, vm_name = vm["id"], vm["name"]
+
+    print(f"Redémmarage de '{vm_name}' (VM #{vm_id})",
+          file=sys.stderr)
+
+    api_request("post", f"/vm/{vm_id}/restart", session_token)
+
 def parse_args():
     p = argparse.ArgumentParser(prog="freeboxvm", description="Freebox VM manager")
 
@@ -282,6 +324,13 @@ def parse_args():
     sp_list = sub.add_parser("list", help="List VMs")
     sp_console = sub.add_parser("console", help="Open VM console")
     sp_console.add_argument("vm", nargs="?", help="VM id or name; default = first running")
+    sp_poweron = sub.add_parser("poweron", help="Power on a VM")
+    sp_poweron.add_argument("vm", nargs="?", help="VM id or name; default = first running")
+    sp_poweroff = sub.add_parser("poweroff", help="Power off a VM")
+    po_force = sp_poweroff.add_argument("--force", "-f", action='store_true', help="Force power off a VM")
+    sp_poweroff.add_argument("vm", nargs="?", help="VM id or name; default = first running")
+    sp_reset = sub.add_parser("reset", help="Reset on a VM")
+    sp_reset.add_argument("vm", nargs="?", help="VM id or name; default = first running")
 
     return p.parse_args()
 
@@ -299,6 +348,15 @@ def main():
 
     if args.cmd == "console":
         console(session_token, args)
+
+    if args.cmd == "poweron":
+        poweron(session_token, args)
+
+    if (args.cmd == "poweroff"):
+        poweroff(session_token, args)
+
+    if (args.cmd == "reset"):
+        reset(session_token, args)
 
 if __name__ == "__main__":
     main()

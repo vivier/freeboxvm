@@ -43,6 +43,31 @@ freeboxvm console [id|name]
 - Exit with **Ctrl+C** or **Ctrl-A D**.
 - Send a literal **Ctrl-A** to the VM with **Ctrl-A A**.
 
+### Power on a VM
+```bash
+freeboxvm poweron [id|name]
+```
+
+- Starts the specified VM.
+- If no argument is provided, defaults to the first VM in the list.
+
+### Power off a VM
+```bash
+freeboxvm poweroff [-f|--force] [id|name]
+```
+
+- Requests ACPI shutdown of the specified VM.
+- With `-f`/`--force`, sends a hard stop instead.
+- If no argument is provided, defaults to the first VM in the list.
+
+### Reset a VM
+```bash
+freeboxvm reset [id|name]
+```
+
+- Restarts the specified VM.
+- If no argument is provided, defaults to the first VM in the list.
+
 ---
 
 ## License
