@@ -68,6 +68,17 @@ freeboxvm reset [id|name]
 - Restarts the specified VM.
 - If no argument is provided, defaults to the first VM in the list.
 
+### Display Freebox system info
+```bash
+freeboxvm system
+```
+
+- Shows overall Freebox resources:
+  - Total and used memory
+  - Total and used CPUs
+  - USB allocation status
+  - List of available USB ports
+
 ---
 
 ## License

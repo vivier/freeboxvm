@@ -214,6 +214,15 @@ def raw_terminal():
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
+def system_info(session_token):
+    info = api_request("get", "/vm/info/", session_token)
+    print(f"Mémoire Totale: {info['total_memory']}\tMémoire Utilisée: {info['used_memory']}")
+    print(f"Nombre de CPUs: {info['total_cpus']}\tCPUs Utilisés: {info['used_cpus']}")
+    print(f"USB externe alloué: {'Oui' if info['usb_used'] else 'Non'}")
+    print("Liste des ports USB disponibles:")
+    for usb in info['usb_ports']:
+        print(f"   {usb}")
+
 def get_vm_list(session_token):
     vm_list = api_request("get", "/vm/", session_token)
     return vm_list
@@ -321,6 +330,7 @@ def parse_args():
     p = argparse.ArgumentParser(prog="freeboxvm", description="Freebox VM manager")
 
     sub = p.add_subparsers(dest="cmd", required=True)
+    sp_system = sub.add_parser("system", help="Display Freebox system info")
     sp_list = sub.add_parser("list", help="List VMs")
     sp_console = sub.add_parser("console", help="Open VM console")
     sp_console.add_argument("vm", nargs="?", help="VM id or name; default = first running")
@@ -343,6 +353,9 @@ def main():
         print("Freebox inaccessible.")
         return
 
+    if (args.cmd == "system"):
+        system_info(session_token)
+
     if args.cmd == "list":
         list(session_token)
 
@@ -357,6 +370,7 @@ def main():
 
     if (args.cmd == "reset"):
         reset(session_token, args)
+
 
 if __name__ == "__main__":
     main()
