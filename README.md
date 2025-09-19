@@ -9,7 +9,7 @@ via the Freebox OS API v8.
 
 - Python 3.8+
 - Freebox with Freebox OS v8 API
-- Packages: requests, websockets
+- Packages: `requests`, `websockets`, `pygobject` (for **libosinfo** support)
 
 Install with:
 
@@ -33,6 +33,8 @@ ID      STATUS  NAME
 1       stopped Ubuntu-22.04
 ```
 
+---
+
 ### Connect to a VM console
 ```bash
 freeboxvm console [id|name]
@@ -43,6 +45,8 @@ freeboxvm console [id|name]
 - Exit with **Ctrl+C** or **Ctrl-A D**.
 - Send a literal **Ctrl-A** to the VM with **Ctrl-A A**.
 
+---
+
 ### Power on a VM
 ```bash
 freeboxvm poweron [id|name]
@@ -50,6 +54,8 @@ freeboxvm poweron [id|name]
 
 - Starts the specified VM.
 - If no argument is provided, defaults to the first VM in the list.
+
+---
 
 ### Power off a VM
 ```bash
@@ -60,6 +66,8 @@ freeboxvm poweroff [-f|--force] [id|name]
 - With `-f`/`--force`, sends a hard stop instead.
 - If no argument is provided, defaults to the first VM in the list.
 
+---
+
 ### Reset a VM
 ```bash
 freeboxvm reset [id|name]
@@ -67,6 +75,8 @@ freeboxvm reset [id|name]
 
 - Restarts the specified VM.
 - If no argument is provided, defaults to the first VM in the list.
+
+---
 
 ### Display Freebox system info
 ```bash
@@ -78,6 +88,41 @@ freeboxvm system
   - Total and used CPUs
   - USB allocation status
   - List of available USB ports
+
+---
+
+### List installable distributions
+```bash
+freeboxvm os-list [options]
+```
+
+Lists installable operating system images for VMs.
+
+Options:
+- `-e, --extra`: Query external sources via **libosinfo** for cloud-init images
+  (aarch64, qcow2/raw).
+- `-i, --iso`  : List installable ISOs instead of cloud images.
+- `-l, --long` : Show detailed info (OS, distro, URL, checksum, live flag).
+- `-c, --check`: Validate image and checksum URLs.
+- `-o, --os`   : Filter results by OS name (e.g. `fedora`, `ubuntu`).
+
+Examples:
+```bash
+# List all available distributions
+freeboxvm os-list
+
+# Show detailed info
+freeboxvm os-list --long
+
+# Validate URLs
+freeboxvm os-list --check --long
+
+# List installable ISOs
+freeboxvm os-list --iso
+
+# Filter by OS (e.g. only Fedora)
+freeboxvm os-list --os fedora
+```
 
 ---
 

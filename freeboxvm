@@ -8,6 +8,8 @@ from contextlib import contextmanager
 import asyncio
 from websockets.asyncio.client import connect
 import ssl
+from urllib.parse import urljoin, urlparse
+import re
 
 APP_ID		= "freeboxvm"
 APP_NAME	= "Freebox VM manager"
@@ -236,6 +238,203 @@ def list(session_token):
     for vm in vm_list:
         print(f"{vm['id']}\t{vm.get('status')}\t{vm.get('name')}")
 
+def distro_check(url, hash):
+    try:
+        r = requests.head(url, allow_redirects=True, timeout=5)
+        if not r.status_code == 200:
+            return False
+    except requests.RequestException:
+        return False
+
+    if not hash:
+        return True
+
+    try:
+        r = requests.head(hash, allow_redirects=True, timeout=5)
+        if not r.status_code == 200:
+            return False
+    except requests.RequestException:
+        return False
+
+    return True
+
+def distro_get_hash(os_name, url):
+    base_url = url.rsplit("/", 1)[0] + "/"
+    if os_name == "ubuntu":
+        sha_url = urljoin(base_url, "SHA256SUMS")
+    if os_name == "alt" :
+        sha_url = urljoin(base_url, "SHA256SUM")
+    elif os_name == "debian":
+        sha_url = urljoin(base_url, "SHA512SUMS")
+    elif os_name in [ "almalinux", "centos", "rocky" ] :
+        sha_url = urljoin(base_url, "CHECKSUM")
+    elif os_name == "opensuse":
+        sha_url = url + ".sha256"
+    elif os_name == "fedora":
+        m = re.match(r".*-(\d+)-([\d.]+)\.aarch64\.qcow2", os.path.basename(urlparse(url).path))
+        if not m:
+            m = re.match(r".*\.aarch64-(\d+)-([\d.]+)\.qcow2", os.path.basename(urlparse(url).path))
+
+        if m:
+            release, version = m.groups()
+            sha_url = urljoin(base_url, f"Fedora-Cloud-{release}-{version}-aarch64-CHECKSUM")
+        else:
+            m = re.match(r"^Fedora-(\w+)-ostree-aarch64-(\d+)-([\d.]+)\.iso$", os.path.basename(urlparse(url).path))
+
+            if m:
+                codename, release, version = m.groups()
+                sha_url = urljoin(base_url, f"Fedora-{codename}-{release}-{version}-aarch64-CHECKSUM")
+            else:
+                return None
+    else:
+        sha_url = None
+
+    return sha_url
+
+def get_list_iso():
+    import gi
+    gi.require_version('Libosinfo', '1.0')
+    from gi.repository import Libosinfo
+    distro_list = [ ]
+
+    loader = Libosinfo.Loader()
+    loader.process_default_path()
+    db = loader.get_db()
+
+    os_list = db.get_os_list()
+    num_oses = os_list.get_length()
+
+    for i in range(num_oses):
+        os_obj = os_list.get_nth(i)
+
+        media_list = os_obj.get_media_list()
+        medias = [ media_list.get_nth(i) for i in range(media_list.get_length()) ]
+
+        distro_os = os_obj.get_distro()
+        distro_name = os_obj.get_name()
+        distro_version = os_obj.get_version()
+
+        for media in medias:
+            distro_url = media.get_param_value('url')
+            if not distro_url or not media.get_architecture() == 'aarch64':
+                continue
+
+            distro_hash = distro_get_hash(distro_os, distro_url)
+            entry = {
+                'name': distro_name,
+                'short-id': os_obj.get_short_id(),
+                'os': distro_os,
+                'url': distro_url,
+                'hash': distro_get_hash(distro_os, distro_url),
+                'live': media.get_live()
+            }
+            distro_list.append(entry)
+    return distro_list
+
+def get_list_distro(session_token):
+    distro_list = [ ]
+
+    freebox_list = api_request("get", "/vm/distros/", session_token)
+
+    for distro in freebox_list:
+        entry = {
+            'name': distro['name'],
+            'os': distro['os'],
+            'url': distro['url'],
+        }
+        m = re.search(r"\d+(?:\.\d+)?", distro['name'])
+        if m:
+            relver = m.group()
+            entry['short-id'] = f"{distro['os']}{relver}"
+        else:
+            if distro['os'] == 'jeedom':
+                entry['short-id'] = 'jeedom'
+            elif distro['name'] == "Debian Unstable (sid)":
+                entry['short-id'] = 'debian-sid'
+
+        if distro.get('hash'):
+            entry['hash'] = distro.get('hash')
+        distro_list.append(entry)
+    return distro_list
+
+def get_list_extra_distro():
+    import gi
+    gi.require_version('Libosinfo', '1.0')
+    from gi.repository import Libosinfo
+    distro_list = [ ]
+
+    loader = Libosinfo.Loader()
+    loader.process_default_path()
+    db = loader.get_db()
+
+    os_list = db.get_os_list()
+    num_oses = os_list.get_length()
+
+    for i in range(num_oses):
+        os_obj = os_list.get_nth(i)
+
+        distro_os = os_obj.get_distro()
+
+        img_list = os_obj.get_image_list()
+        images = [ img_list.get_nth(i) for i in range(img_list.get_length()) ]
+
+        ci_images = [ img for img in images
+                        if img.get_param_value("cloud-init") == 'true' and
+                           img.get_architecture() == 'aarch64' and
+                           img.get_param_value('format') in [ 'qcow2', 'raw' ] ]
+
+        if not ci_images:
+            continue
+
+        distro_name = os_obj.get_name()
+        for img in ci_images:
+            distro_url = img.get_param_value('url')
+            entry = {
+                'name': distro_name,
+                'short-id': os_obj.get_short_id(),
+                'os': distro_os,
+                'url': distro_url,
+                'hash': distro_get_hash(distro_os, distro_url),
+                'variant': img.get_param_value("variant"),
+            }
+            distro_list.append(entry)
+
+    return distro_list
+
+def list_distro(session_token, args):
+
+    if args.extra:
+        distro_list = get_list_extra_distro()
+    elif args.iso:
+        distro_list = get_list_iso()
+    else:
+        distro_list = get_list_distro(session_token)
+
+    if not distro_list:
+        print("Pas de distribution disponible", file=sys.stderr)
+        return
+
+    for distro in distro_list:
+        distro_os = distro['os']
+
+        if args.os and not distro_os in args.os:
+            continue
+
+        distro_url = distro['url']
+        distro_name = distro['name']
+        distro_hash = distro.get('hash')
+
+        print(f"{distro_name} ({distro.get('short-id')}{f', {distro.get('variant')}' if distro.get('variant') else ''}){' [Live CD]' if distro.get('live') else ''}")
+        if not distro_hash:
+            distro_hash = distro_get_hash(distro_os, distro_url)
+        if args.check and not distro_check(distro_url, distro_hash):
+            print(f"\t-> URL/HASH invalide")
+
+        if args.long:
+            print(f"\t{distro_os}")
+            print(f"\t{distro_url}")
+            print(f"\t{distro_hash if distro_hash else 'No hash/checksum URL'}")
+
 def select_vm(session_token, selector: str | None):
     vm_list = get_vm_list(session_token)
     if not vm_list:
@@ -331,6 +530,12 @@ def parse_args():
 
     sub = p.add_subparsers(dest="cmd", required=True)
     sp_system = sub.add_parser("system", help="Display Freebox system info")
+    sp_list_os = sub.add_parser("os-list", help="List installable distributions")
+    sp_list_os.add_argument("--long", "-l", action='store_true', help="Display more information")
+    sp_list_os.add_argument("--extra", "-e", action='store_true', help="List available distributions from external sources")
+    sp_list_os.add_argument("--check", "-c", action='store_true', help="Check the URL is valid")
+    sp_list_os.add_argument("--iso", "-i", action='store_true', help="List available install ISO")
+    sp_list_os.add_argument("--os", "-o", type=str, help="Filter list using OS name (fedora, ubuntu, ...)")
     sp_list = sub.add_parser("list", help="List VMs")
     sp_console = sub.add_parser("console", help="Open VM console")
     sp_console.add_argument("vm", nargs="?", help="VM id or name; default = first running")
@@ -356,6 +561,9 @@ def main():
     if (args.cmd == "system"):
         system_info(session_token)
 
+    if args.cmd == "os-list":
+        list_distro(session_token, args)
+
     if args.cmd == "list":
         list(session_token)
 
@@ -370,7 +578,6 @@ def main():
 
     if (args.cmd == "reset"):
         reset(session_token, args)
-
 
 if __name__ == "__main__":
     main()
