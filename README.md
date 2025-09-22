@@ -126,6 +126,39 @@ freeboxvm os-list --os fedora
 
 ---
 
+### Download an image
+```bash
+freeboxvm download [options] [short-id]
+```
+
+Download a VM installation image (disk or ISO) using the Freebox Download Manager.
+
+Options:
+- `-i, --iso`        : Select an install ISO rather than a cloud/disk image.
+- `-u, --url URL`    : Provide a direct URL instead of using a `short-id`.
+- `-a, --hash HASH`  : Provide checksum URL when using `--url`.
+- `-f, --filename F` : Filename to store the file.
+- `-d, --directory D`: Freebox directory to store the file (base64 encoded automatically).
+- `-b, --background` : Run download in background (progress not shown; check in Freebox "Téléchargements").
+
+Examples:
+```bash
+# Download a Fedora cloud-init image by short-id
+freeboxvm download fedora
+
+# Download an Ubuntu ISO instead of a cloud image
+freeboxvm download --iso ubuntu
+
+# Provide a custom URL and checksum
+freeboxvm download --url https://cloud-images.ubuntu.com/.../disk.qcow2 \
+                   --hash https://cloud-images.ubuntu.com/.../SHA256SUMS
+
+# Download in background mode
+freeboxvm download --background fedora
+```
+
+---
+
 ## License
 
 This program is free software: you can redistribute it and/or modify

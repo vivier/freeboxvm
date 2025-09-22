@@ -10,6 +10,8 @@ from websockets.asyncio.client import connect
 import ssl
 from urllib.parse import urljoin, urlparse
 import re
+import base64
+from tqdm import tqdm
 
 APP_ID		= "freeboxvm"
 APP_NAME	= "Freebox VM manager"
@@ -267,7 +269,9 @@ def distro_get_hash(os_name, url):
     elif os_name == "debian":
         sha_url = urljoin(base_url, "SHA512SUMS")
     elif os_name in [ "almalinux", "centos", "rocky" ] :
-        sha_url = urljoin(base_url, "CHECKSUM")
+        # format not supported by Freebox download manager
+        #sha_url = urljoin(base_url, "CHECKSUM")
+        sha_url = None
     elif os_name == "opensuse":
         sha_url = url + ".sha256"
     elif os_name == "fedora":
@@ -525,6 +529,95 @@ def reset(session_token, args):
 
     api_request("post", f"/vm/{vm_id}/restart", session_token)
 
+def download(session_token, args):
+    if not args.short_id and not args.url:
+        print("L'un des paramètres short-id ou --url est nécessaire")
+        return
+
+    if args.directory:
+        download_dir_b64 = base64.b64encode(args.directory.encode("utf-8")).decode("ascii")
+    else:
+        download_dir_b64 = None
+
+    if args.filename:
+        filename = args.filename
+    else:
+        filename = None
+
+    if args.short_id:
+        short_id = args.short_id
+        if args.iso:
+            distro_list = get_list_iso()
+            entry = next((item for item in distro_list if item['short-id'] == short_id), None)
+        else:
+            distro_list = get_list_distro(session_token)
+            entry = next((item for item in distro_list if item['short-id'] == short_id), None)
+            if not entry:
+                distro_list = get_list_extra_distro()
+                entry = next((item for item in distro_list if item['short-id'] == short_id), None)
+        if entry:
+            request = {
+               'download_url': entry['url'],
+               'download_dir': download_dir_b64,
+               'filename': filename,
+                'hash': entry.get('hash')
+            }
+        else:
+            print(f"short-id {short_id} introuvable")
+            return
+    else:
+            request = {
+               'download_url': args.url,
+               'download_dir': download_dir_b64,
+               'filename': filename,
+                'hash': args.hash
+            }
+
+    resp = api_request("post", "/downloads/add", session_token, data=request)
+    if not resp:
+       print("Echec")
+       return
+
+    if args.background:
+        print("Téléchargement démarré sur la Freebox, consultez l'utilitaire 'Téléchargements'")
+        return
+
+    try:
+        filesize = 0
+        while not filesize:
+            time.sleep(0.1)
+            task = api_request("get", f"/downloads/{resp['id']}", session_token)
+            if task['status'] != 'downloading':
+                break
+            filesize = task['size']
+
+        rxsize = 0
+        lastrxsize = 0
+        t = tqdm(total=filesize,unit_scale=True,unit='o')
+
+        while rxsize != filesize:
+            task = api_request("get", f"/downloads/{resp['id']}", session_token)
+            if task['status'] != 'downloading':
+                break
+            rxsize = task['rx_bytes']
+            t.update(rxsize - lastrxsize)
+            lastrxsize = rxsize
+            time.sleep(0.1)
+        t.close()
+        task = api_request("get", f"/downloads/{resp['id']}", session_token)
+        if task['status'] == 'checking':
+            print("Checking SHA")
+        while True:
+            task = api_request("get", f"/downloads/{resp['id']}", session_token)
+            if task['status'] != 'checking':
+                break
+            time.sleep(0.5)
+        print(task['status'])
+    except KeyboardInterrupt:
+        t.close()
+        task = api_request("delete", f"/downloads/{resp['id']}/erase", session_token)
+        print("Interrupted... file deleted")
+
 def parse_args():
     p = argparse.ArgumentParser(prog="freeboxvm", description="Freebox VM manager")
 
@@ -546,6 +639,14 @@ def parse_args():
     sp_poweroff.add_argument("vm", nargs="?", help="VM id or name; default = first running")
     sp_reset = sub.add_parser("reset", help="Reset on a VM")
     sp_reset.add_argument("vm", nargs="?", help="VM id or name; default = first running")
+    sp_download = sub.add_parser("download", help="Download a disk/cdrom image")
+    sp_download.add_argument("--iso", "-i", action='store_true', help="select an ISO rather than a disk image")
+    sp_download.add_argument("short_id", metavar="short-id", nargs="?", type=str, help="distro short-id")
+    sp_download.add_argument("--background", "-b", action='store_true', help="Download in background")
+    sp_download.add_argument("--url", "-u", type=str, help="Don't use short-id, provide the URL")
+    sp_download.add_argument("--hash", "-a", type=str, help="Don't use short-id, provide the hash")
+    sp_download.add_argument("--filename", "-f", type=str, help="Provide filename to store the file")
+    sp_download.add_argument("--directory", "-d", type=str, help="Freebox directory to store the file")
 
     return p.parse_args()
 
@@ -563,6 +664,9 @@ def main():
 
     if args.cmd == "os-list":
         list_distro(session_token, args)
+
+    if (args.cmd == "download"):
+        download(session_token, args)
 
     if args.cmd == "list":
         list(session_token)
