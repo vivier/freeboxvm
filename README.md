@@ -47,6 +47,35 @@ freeboxvm console [id|name]
 
 ---
 
+### Expose a VM screen via VNC proxy
+```bash
+freeboxvm vnc-proxy [options][id|name]
+```
+
+Exposes the VM’s VNC-over-WebSocket screen on a local TCP port for use
+with any standard VNC client.
+
+- If no argument is provided, connects to the first running VM (or the first in
+  the list).
+- `-l, --listen A` : Bind address (default `127.0.0.1`).
+- `-p, --port P`   : Local TCP port (default `5901`).
+- `--console`      : Run the interactive console in parallel with the
+  VNC proxy.
+
+Examples:
+```bash
+# Start a VNC proxy for the first running VM on localhost:5901
+freeboxvm vnc-proxy
+
+# Start proxy for VM id 12, binding on all interfaces, port 5902
+freeboxvm vnc-proxy --listen 0.0.0.0 --port 5902 12
+
+# Run proxy and console together
+freeboxvm vnc-proxy --console
+```
+
+---
+
 ### Power on a VM
 ```bash
 freeboxvm poweron [id|name]

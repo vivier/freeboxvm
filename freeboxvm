@@ -12,6 +12,8 @@ from urllib.parse import urljoin, urlparse
 import re
 import base64
 from tqdm import tqdm
+import signal
+from websockets.exceptions import ConnectionClosed
 
 APP_ID		= "freeboxvm"
 APP_NAME	= "Freebox VM manager"
@@ -485,6 +487,147 @@ def console(session_token, args):
         except KeyboardInterrupt:
             pass
 
+async def vnc_proxy_once(session_token, vm_id, reader, writer, prefer_base64=False):
+    """
+    Bridge one TCP client <-> Freebox VNC-over-WebSocket connection.
+    """
+    url = f"wss://mafreebox.freebox.fr/api/v8/vm/{vm_id}/vnc"
+
+    # TLS verification disabled (Freebox local cert); change if you pinned certs.
+    ssl_ctx = ssl.create_default_context()
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = ssl.CERT_NONE
+
+    # Try to negotiate 'binary' first; some QEMU endpoints accept 'base64' only.
+    subprotocols = ['binary', 'base64'] if not prefer_base64 else ['base64', 'binary']
+
+    async with connect(
+        url,
+        additional_headers={"X-Fbx-App-Auth": session_token},
+        subprotocols=subprotocols,
+        ssl=ssl_ctx,
+        open_timeout=10,
+        close_timeout=5,
+        max_size=None,  # do not cap frame size
+    ) as ws:
+        mode = ws.subprotocol or 'binary'
+        use_base64 = (mode == 'base64')
+
+        async def ws_to_tcp():
+            try:
+                async for msg in ws:
+                    if isinstance(msg, str):
+                        # text frames: either base64 data or shouldn't happen
+                        data = base64.b64decode(msg) if use_base64 else msg.encode()
+                    else:
+                        data = msg
+                    writer.write(data)
+                    await writer.drain()
+            except ConnectionClosed:
+                pass
+            finally:
+                try:
+                    writer.close()
+                    await writer.wait_closed()
+                except Exception:
+                    pass
+
+        async def tcp_to_ws():
+            try:
+                while True:
+                    data = await reader.read(65536)
+                    if not data:
+                        break
+                    if use_base64:
+                        await ws.send(base64.b64encode(data).decode('ascii'))
+                    else:
+                        await ws.send(data)
+            finally:
+                try:
+                    await ws.close()
+                except Exception:
+                    pass
+
+        await asyncio.gather(ws_to_tcp(), tcp_to_ws())
+
+
+async def run_vnc_proxy(session_token, vm_id, host="127.0.0.1", port=5901):
+    """
+    Start TCP server that forwards to Freebox VNC WS for the given VM.
+    """
+    loop = asyncio.get_running_loop()
+    stop = loop.create_future()
+
+    def _handle_sig():
+        if not stop.done():
+            stop.set_result(True)
+
+    # Graceful Ctrl-C
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, _handle_sig)
+
+    async def handler(reader, writer):
+        peer = writer.get_extra_info("peername")
+        print(f"Client connected from {peer}")
+        try:
+            await vnc_proxy_once(session_token, vm_id, reader, writer)
+        except Exception as e:
+            print(f"Tunnel error: {e}")
+            try:
+                writer.close()
+                await writer.wait_closed()
+            except Exception:
+                pass
+        finally:
+            print(f"Client disconnected from {peer}")
+
+    server = await asyncio.start_server(handler, host, port)
+    sockets = ", ".join(str(s.getsockname()) for s in server.sockets or [])
+    async with server:
+        await stop
+    print("Shutting down VNC proxy...")
+
+import asyncio  # (already imported at top)
+# raw_terminal is already defined in your file
+
+async def run_vnc_and_console(session_token, vm_id, host, port):
+    """
+    Run the VNC proxy and the interactive console concurrently.
+    The console ends on Ctrl-A D (your existing behavior); we then stop the proxy.
+    """
+    proxy_task = asyncio.create_task(run_vnc_proxy(session_token, vm_id, host, port))
+
+    async def _console_task():
+        with raw_terminal():
+            try:
+                await console_link(session_token, vm_id)
+            except KeyboardInterrupt:
+                pass
+
+    try:
+        await _console_task()        # waits until user detaches or Ctrl-C
+    finally:
+        # Stop the proxy when console ends (or on Ctrl-C)
+        proxy_task.cancel()
+        try:
+            await proxy_task
+        except asyncio.CancelledError:
+            pass
+
+
+def vnc_proxy(session_token, args):
+    vm = select_vm(session_token, args.vm)
+    if not vm:
+        print("VM non trouvé. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
+        sys.exit(1)
+    vm_id, vm_name = vm["id"], vm["name"]
+    print(f"Proxy VNC pour '{vm_name}' (VM #{vm_id}) sur {args.listen}:{args.port}")
+
+    if args.console:
+        asyncio.run(run_vnc_and_console(session_token, vm_id, args.listen, args.port))
+    else:
+        asyncio.run(run_vnc_proxy(session_token, vm_id, args.listen, args.port))
+
 def poweron(session_token, args):
 
     vm = select_vm(session_token, args.vm)
@@ -632,6 +775,11 @@ def parse_args():
     sp_list = sub.add_parser("list", help="List VMs")
     sp_console = sub.add_parser("console", help="Open VM console")
     sp_console.add_argument("vm", nargs="?", help="VM id or name; default = first running")
+    sp_vnc = sub.add_parser("vnc-proxy", help="Expose VM VNC over a local TCP port")
+    sp_vnc.add_argument("vm", nargs="?", help="VM id or name; default = first running")
+    sp_vnc.add_argument("--listen", "-l", default="127.0.0.1", help="Bind address (default 127.0.0.1)")
+    sp_vnc.add_argument("--port", "-p", type=int, default=5901, help="Local TCP port (default 5901)")
+    sp_vnc.add_argument("--console", action="store_true", help="Also attach the VM console")
     sp_poweron = sub.add_parser("poweron", help="Power on a VM")
     sp_poweron.add_argument("vm", nargs="?", help="VM id or name; default = first running")
     sp_poweroff = sub.add_parser("poweroff", help="Power off a VM")
@@ -682,6 +830,9 @@ def main():
 
     if (args.cmd == "reset"):
         reset(session_token, args)
+
+    if args.cmd == "vnc-proxy":
+        vnc_proxy(session_token, args)
 
 if __name__ == "__main__":
     main()
