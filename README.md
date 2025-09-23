@@ -9,7 +9,8 @@ via the Freebox OS API v8.
 
 - Python 3.8+
 - Freebox with Freebox OS v8 API
-- Packages: `requests`, `websockets`, `pygobject` (for **libosinfo** support)
+- Packages: `requests`, `websockets`, `tqdm`, `humanize`, `pygobject`
+  (for **libosinfo** support)
 
 Install with:
 
@@ -72,6 +73,62 @@ freeboxvm vnc-proxy --listen 0.0.0.0 --port 5902 12
 
 # Run proxy and console together
 freeboxvm vnc-proxy --console
+```
+
+---
+
+### Manage disk images
+```bash
+freeboxvm disk <action> [options] <args>
+```
+
+Manage VM disk images (create, resize, inspect, delete). Sizes accept
+binary suffixes `k`, `m`, `g`, `t` (powers of two); raw bytes are also
+accepted.
+
+Actions:
+
+- **create**
+  ```bash
+  freeboxvm disk create [--type qcow2] <path> <size>
+  ```
+  Create a new disk image (default type `qcow2`).
+
+- **resize**
+  ```bash
+  freeboxvm disk resize [--shrink-allow] <path> <new-size>
+  ```
+  Resize an existing disk image. Use `--shrink-allow` to permit
+  shrinking (can be destructive).
+
+- **info**
+  ```bash
+  freeboxvm disk info <path>
+  ```
+  Display virtual size, actual space used, and type.
+
+- **delete**
+  ```bash
+  freeboxvm disk delete <path>
+  ```
+  Delete a disk image.
+
+Examples:
+```bash
+# Create a 10 GiB qcow2 image
+freeboxvm disk create "/Disque 1/VMs/disk1.qcow2" 10g
+
+# Grow a disk to 20 GiB
+freeboxvm disk resize "/Disque 1/VMs/disk1.qcow2" 20g
+
+# Allow destructive shrink to 8 GiB
+freeboxvm disk resize --shrink-allow "/Disque 1/VMs/disk1.qcow2" 8g
+
+# Show disk details
+freeboxvm disk info "/Disque 1/VMs/disk1.qcow2"
+
+# Delete a disk
+freeboxvm disk delete "/Disque 1/VMs/disk1.qcow2"
 ```
 
 ---

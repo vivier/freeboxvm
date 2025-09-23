@@ -14,6 +14,7 @@ import base64
 from tqdm import tqdm
 import signal
 from websockets.exceptions import ConnectionClosed
+import humanize
 
 APP_ID		= "freeboxvm"
 APP_NAME	= "Freebox VM manager"
@@ -761,6 +762,89 @@ def download(session_token, args):
         task = api_request("delete", f"/downloads/{resp['id']}/erase", session_token)
         print("Interrupted... file deleted")
 
+def disk_create(session_token, args):
+    task_id = api_request("post", '/vm/disk/create', session_token, json={
+        'disk_path': args['path_b64'],
+        'size': args['size'],
+        'disk_type': args['type'],
+    })
+    return task_id
+
+def disk_resize(session_token, args):
+    task_id = api_request("post", '/vm/disk/resize', session_token, json={
+        'disk_path': args['path_b64'],
+        'size': args['size'],
+        'shrink_allow': args['shrink_allow'],
+    })
+    return task_id
+
+async def disk_execute(session_token, action, args):
+    ssl_ctx = ssl.create_default_context()
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = ssl.CERT_NONE
+
+    async with connect("wss://mafreebox.freebox.fr/api/v8/ws/event/",
+                       additional_headers={"X-Fbx-App-Auth": session_token},
+                       ssl=ssl_ctx) as ws:
+        await ws.send(json.dumps({
+            "action": "register",
+            "events": [ "vm_disk_task_done"],
+        }))
+        task_id = action(session_token, args)
+        if not task_id:
+            return False
+        async for msg in ws:
+            try:
+                data = json.loads(msg)
+            except Exception:
+                continue
+            if data.get("action") == "register":
+                if not data.get("success"):
+                    return False
+                continue
+            if data.get("action") == "notification" and data.get("source") == "vm" and data.get("event") == "disk_task_done":
+                result = data.get("result", {})
+                if result.get("id") == task_id["id"]:
+                    break
+    api_request("delete", f"/vm/disk/task/{task_id['id']}", session_token)
+
+def disk(session_token, args):
+    tens = dict(k=2**0, m=2**10, b=2**20, g=2**30, t=2**40)
+
+    if args.path:
+        disk_path_b64 = base64.b64encode(args.path.encode("utf-8")).decode("ascii")
+
+    if hasattr(args, "size"):
+        size, unit = args.size[0:-1], args.size[-1].lower()
+        if unit in tens.keys():
+            disk_size = int(float(size) * tens[unit])
+        else:
+            disk_size = args.size
+
+    if args.action == 'create':
+        asyncio.run(disk_execute(session_token, disk_create, {
+            'path_b64': disk_path_b64,
+            'size': disk_size,
+            'type': args.type
+        }))
+    elif args.action == 'resize':
+        asyncio.run(disk_execute(session_token, disk_resize, {
+            'path_b64': disk_path_b64,
+            'size': disk_size,
+            'shrink_allow': args.shrink_allow
+        }))
+    elif args.action == 'delete':
+        info = api_request("post", f"/vm/disk/info", session_token, json={ 'disk_path': disk_path_b64 })
+        if not info:
+            print("Ce n'est pas un disque de VM")
+        rm = api_request("post", "/fs/rm/", session_token, json={ 'files': [ disk_path_b64 ] })
+    elif args.action == 'info':
+        info = api_request("post", f"/vm/disk/info", session_token, json={ 'disk_path': disk_path_b64 })
+        if not info:
+            return
+        print(f"Fichier: {args.path}")
+        print(f"Taille virtuelle: {humanize.naturalsize(info['virtual_size'], binary=True)} Espace occupé: {humanize.naturalsize(info['actual_size'], binary=True)} type: {info['type']}")
+
 def parse_args():
     p = argparse.ArgumentParser(prog="freeboxvm", description="Freebox VM manager")
 
@@ -795,6 +879,21 @@ def parse_args():
     sp_download.add_argument("--hash", "-a", type=str, help="Don't use short-id, provide the hash")
     sp_download.add_argument("--filename", "-f", type=str, help="Provide filename to store the file")
     sp_download.add_argument("--directory", "-d", type=str, help="Freebox directory to store the file")
+
+    sp_disk = sub.add_parser("disk", help="Manage disk images")
+    sp_disk_action = sp_disk.add_subparsers(dest="action", required=True)
+    sp_disk_create = sp_disk_action.add_parser("create", help="Create a new disk image")
+    sp_disk_create.add_argument("--type", "-t", type=str, default='qcow2', help="Disk type")
+    sp_disk_create.add_argument("path", help="Disk image path")
+    sp_disk_create.add_argument("size", help="Disk image size")
+    sp_disk_info = sp_disk_action.add_parser("info", help="Get information on a disk image")
+    sp_disk_info.add_argument("path", help="Disk image path")
+    sp_disk_resize = sp_disk_action.add_parser("resize", help="Resize a disk image")
+    sp_disk_resize.add_argument("--shrink-allow", "-a", action='store_true', help="Shrinking the disk is allowed. Can be destructive")
+    sp_disk_resize.add_argument("path", help="Disk image path")
+    sp_disk_resize.add_argument("size", help="Disk image new size")
+    sp_disk_delete = sp_disk_action.add_parser("delete", help="Delete a disk image")
+    sp_disk_delete.add_argument("path", help="Disk image path")
 
     return p.parse_args()
 
@@ -833,6 +932,9 @@ def main():
 
     if args.cmd == "vnc-proxy":
         vnc_proxy(session_token, args)
+
+    if args.cmd == "disk":
+        disk(session_token, args)
 
 if __name__ == "__main__":
     main()
