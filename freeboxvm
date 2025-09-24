@@ -208,18 +208,6 @@ async def console_link(session_token, vm_id):
 
         await asyncio.gather(rx(), tx())
 
-@contextmanager
-def raw_terminal():
-    import termios, tty
-
-    fd = sys.stdin.fileno()
-    old = termios.tcgetattr(fd)
-    try:
-        tty.setraw(fd)
-        yield
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old)
-
 def system_info(session_token):
     info = api_request("get", "/vm/info/", session_token)
     print(f"Mémoire Totale: {info['total_memory']}\tMémoire Utilisée: {info['used_memory']}")
@@ -468,6 +456,18 @@ def select_vm(session_token, selector: str | None):
         return None
 
     return None
+
+@contextmanager
+def raw_terminal():
+    import termios, tty
+
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        yield
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 def console(session_token, args):
 
