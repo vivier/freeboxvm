@@ -76,6 +76,27 @@ default_user:
 
 ---
 
+### Show a single VM
+```bash
+freeboxvm show <id|name> [--long] [--usb-ports] [--disks] [--cloud-init]
+```
+Display information for a single VM. Supports the same optional flags as
+`list`:
+
+- **--long, -l**       : add OS, MAC, vCPUs, memory, display flag
+- **--usb-ports, -u**  : show bound USB ports
+- **--disks, -d**      : show disk image path/type and CD image
+- **--cloud-init, -c** : show cloud-init status, hostname and user-data
+
+Examples:
+```bash
+freeboxvm show 12
+freeboxvm show Debian-11 --long
+freeboxvm show 12 --disks --cloud-init
+```
+
+---
+
 ### Connect to a VM console
 ```bash
 freeboxvm console <id|name>
