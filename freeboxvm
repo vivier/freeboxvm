@@ -430,13 +430,10 @@ def list_distro(session_token, args):
             print(f"\t{distro_url}")
             print(f"\t{distro_hash if distro_hash else 'No hash/checksum URL'}")
 
-def select_vm(session_token, selector: str | None):
+def select_vm(session_token, selector):
     vm_list = get_vm_list(session_token)
     if not vm_list:
         return None
-
-    if selector is None:
-        return next((vm for vm in vm_list if vm["status"] == "running"), vm_list[0])
 
     try:
         wanted_id = int(selector)
@@ -858,19 +855,19 @@ def parse_args():
     sp_list_os.add_argument("--os", "-o", type=str, help="Filter list using OS name (fedora, ubuntu, ...)")
     sp_list = sub.add_parser("list", help="List VMs")
     sp_console = sub.add_parser("console", help="Open VM console")
-    sp_console.add_argument("vm", nargs="?", help="VM id or name; default = first running")
+    sp_console.add_argument("vm", help="VM id or name")
     sp_vnc = sub.add_parser("vnc-proxy", help="Expose VM VNC over a local TCP port")
-    sp_vnc.add_argument("vm", nargs="?", help="VM id or name; default = first running")
+    sp_vnc.add_argument("vm", help="VM id or name")
     sp_vnc.add_argument("--listen", "-l", default="127.0.0.1", help="Bind address (default 127.0.0.1)")
     sp_vnc.add_argument("--port", "-p", type=int, default=5901, help="Local TCP port (default 5901)")
     sp_vnc.add_argument("--console", action="store_true", help="Also attach the VM console")
     sp_poweron = sub.add_parser("poweron", help="Power on a VM")
-    sp_poweron.add_argument("vm", nargs="?", help="VM id or name; default = first running")
+    sp_poweron.add_argument("vm", help="VM id or name")
     sp_poweroff = sub.add_parser("poweroff", help="Power off a VM")
     po_force = sp_poweroff.add_argument("--force", "-f", action='store_true', help="Force power off a VM")
-    sp_poweroff.add_argument("vm", nargs="?", help="VM id or name; default = first running")
+    sp_poweroff.add_argument("vm", help="VM id or name")
     sp_reset = sub.add_parser("reset", help="Reset on a VM")
-    sp_reset.add_argument("vm", nargs="?", help="VM id or name; default = first running")
+    sp_reset.add_argument("vm", help="VM id or name")
     sp_download = sub.add_parser("download", help="Download a disk/cdrom image")
     sp_download.add_argument("--iso", "-i", action='store_true', help="select an ISO rather than a disk image")
     sp_download.add_argument("short_id", metavar="short-id", nargs="?", type=str, help="distro short-id")
@@ -906,13 +903,13 @@ def main():
         print("Freebox inaccessible.")
         return
 
-    if (args.cmd == "system"):
+    if args.cmd == "system":
         system_info(session_token)
 
     if args.cmd == "os-list":
         list_distro(session_token, args)
 
-    if (args.cmd == "download"):
+    if args.cmd == "download":
         download(session_token, args)
 
     if args.cmd == "list":
@@ -924,10 +921,10 @@ def main():
     if args.cmd == "poweron":
         poweron(session_token, args)
 
-    if (args.cmd == "poweroff"):
+    if args.cmd == "poweroff":
         poweroff(session_token, args)
 
-    if (args.cmd == "reset"):
+    if args.cmd == "reset":
         reset(session_token, args)
 
     if args.cmd == "vnc-proxy":

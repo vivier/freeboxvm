@@ -18,9 +18,24 @@ Install with:
 pip install -r requirements.txt
 ```
 
+On Fedora you may also need:
+
+```bash
+sudo dnf install python3-gobject gobject-introspection libosinfo osinfo-db
+```
+
+On Debian/Ubuntu you may also need:
+
+```bash
+sudo apt install python3-gi gir1.2-libosinfo-1.0
+```
+
 ---
 
 ## Usage
+
+> **Note:** Commands that target a VM now **require** a VM identifier
+> (numeric `id` or `name`). Use `freeboxvm list` to find them.
 
 ### List VMs
 ```bash
@@ -38,26 +53,28 @@ ID      STATUS  NAME
 
 ### Connect to a VM console
 ```bash
-freeboxvm console [id|name]
+freeboxvm console <id|name>
 ```
 
-- If no argument is provided, connects to the first running VM (or the first in
-  the list).
 - Exit with **Ctrl+C** or **Ctrl-A D**.
 - Send a literal **Ctrl-A** to the VM with **Ctrl-A A**.
+
+Examples:
+```bash
+freeboxvm console 0
+freeboxvm console Debian-11
+```
 
 ---
 
 ### Expose a VM screen via VNC proxy
 ```bash
-freeboxvm vnc-proxy [options][id|name]
+freeboxvm vnc-proxy [options] <id|name>
 ```
 
 Exposes the VM’s VNC-over-WebSocket screen on a local TCP port for use
 with any standard VNC client.
 
-- If no argument is provided, connects to the first running VM (or the first in
-  the list).
 - `-l, --listen A` : Bind address (default `127.0.0.1`).
 - `-p, --port P`   : Local TCP port (default `5901`).
 - `--console`      : Run the interactive console in parallel with the
@@ -65,14 +82,14 @@ with any standard VNC client.
 
 Examples:
 ```bash
-# Start a VNC proxy for the first running VM on localhost:5901
-freeboxvm vnc-proxy
+# Start a VNC proxy for VM id 0 on localhost:5901
+freeboxvm vnc-proxy 0
 
 # Start proxy for VM id 12, binding on all interfaces, port 5902
 freeboxvm vnc-proxy --listen 0.0.0.0 --port 5902 12
 
-# Run proxy and console together
-freeboxvm vnc-proxy --console
+# Run proxy and console together for a VM by name
+freeboxvm vnc-proxy --console Debian-11
 ```
 
 ---
@@ -135,32 +152,43 @@ freeboxvm disk delete "/Disque 1/VMs/disk1.qcow2"
 
 ### Power on a VM
 ```bash
-freeboxvm poweron [id|name]
+freeboxvm poweron <id|name>
 ```
 
-- Starts the specified VM.
-- If no argument is provided, defaults to the first VM in the list.
+Examples:
+```bash
+freeboxvm poweron 1
+freeboxvm poweron Ubuntu-22.04
+```
 
 ---
 
 ### Power off a VM
 ```bash
-freeboxvm poweroff [-f|--force] [id|name]
+freeboxvm poweroff [-f|--force] <id|name>
 ```
 
 - Requests ACPI shutdown of the specified VM.
 - With `-f`/`--force`, sends a hard stop instead.
-- If no argument is provided, defaults to the first VM in the list.
+
+Examples:
+```bash
+freeboxvm poweroff 0
+freeboxvm poweroff --force Debian-11
+```
 
 ---
 
 ### Reset a VM
 ```bash
-freeboxvm reset [id|name]
+freeboxvm reset <id|name>
 ```
 
-- Restarts the specified VM.
-- If no argument is provided, defaults to the first VM in the list.
+Examples:
+```bash
+freeboxvm reset 0
+freeboxvm reset Debian-11
+```
 
 ---
 
