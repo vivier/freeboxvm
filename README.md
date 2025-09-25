@@ -39,14 +39,39 @@ sudo apt install python3-gi gir1.2-libosinfo-1.0
 
 ### List VMs
 ```bash
-freeboxvm list
+freeboxvm list [--long] [--usb-ports] [--disks] [--cloud-init]
 ```
+- **Default output** shows: `ID  STATUS  NAME`.
+- **--long** adds columns: `OS  MAC  VCPUs  MEMORY  DISPLAY`.
+- **--usb-ports** prints bound USB ports (or "No USB ports").
+- **--disks** prints disk image path/type and optional CD image path.
+- **--cloud-init** prints cloud-init status, hostname and user-data.
 
-Example:
-```
-ID      STATUS  NAME
-0       running Debian-11
-1       stopped Ubuntu-22.04
+Examples:
+```bash
+# Short view
+freeboxvm list
+ID  STATUS   NAME
+0   running  Debian-11
+1   stopped  Ubuntu-22.04
+
+# Long view with USB ports
+freeboxvm list --long --usb-ports
+ID  STATUS   NAME        OS      MAC               VCPUs  MEMORY  DISPLAY
+0   running  Debian-11   debian  aa:bb:cc:dd:ee:ff 2      2048    True
+    USB ports: usb-external-type-a
+
+# Disk and cloud-init details
+freeboxvm list --disks --cloud-init
+0   running  Debian-11
+    Disk image: Disque 1/VMs/debian.qcow2 (qcow2)
+    CD image: Disque 1/VMs/debian-11.iso
+    Cloud-init hostname: debian
+    Cloud-init user-data:
+#cloud-config
+system_info:
+default_user:
+- name: debian
 ```
 
 ---

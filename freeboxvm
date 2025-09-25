@@ -222,14 +222,46 @@ def get_vm_list(session_token):
     vm_list = api_request("get", "/vm/", session_token)
     return vm_list
 
-def list(session_token):
+def display_info(vm, args):
+    if not args.long:
+        print(f"{vm['id']}\t{vm.get('status')}\t{vm.get('name')}")
+    else:
+        print(f"{vm['id']}\t{vm.get('status')}\t{vm.get('name')}\t{vm.get('os')}\t{vm.get('mac')}\t{vm.get('vcpus')}\t{vm.get('memory')}\t{vm.get('enable_screen')}")
+
+    if args.usb_ports:
+        if vm.get('bind_usb_ports'):
+            print(f"\tUSB ports: {', '.join(port for port in vm.get('bind_usb_ports'))}")
+        else:
+            print("\tNo USB ports")
+
+    if args.disks:
+        print(f"\tDisk image: {base64.b64decode(vm.get('disk_path')).decode('utf-8')} ({vm.get('disk_type')})")
+        if vm.get('cd_path'):
+            print(f"\tCD image: {base64.b64decode(vm.get('cd_path')).decode('utf-8')}")
+        else:
+            print("\tNo CDROM device image")
+
+    if args.cloud_init:
+        if vm.get('enable_cloudinit'):
+            print(f"\tCloud-init hostname: {vm.get('cloudinit_hostname')}")
+            print("\tCloud-init user-data:")
+            print(vm.get('cloudinit_userdata'))
+        else:
+            print("\tCloud-init is disabled")
+
+def list(session_token, args):
     vm_list = get_vm_list(session_token)
     if not vm_list:
         print("Pas de VM disponible", file=sys.stderr)
+        return
 
-    print("ID\tSTATUS\tNAME")
+    if not args.long:
+        print("ID\tSTATUS\tNAME")
+    else:
+        print("ID\tSTATUS\tNAME\tOS\tMAC             \tVCPUs\tMEMORY\tDISPLAY")
+
     for vm in vm_list:
-        print(f"{vm['id']}\t{vm.get('status')}\t{vm.get('name')}")
+        display_info(vm, args)
 
 def distro_check(url, hash):
     try:
@@ -854,6 +886,10 @@ def parse_args():
     sp_list_os.add_argument("--iso", "-i", action='store_true', help="List available install ISO")
     sp_list_os.add_argument("--os", "-o", type=str, help="Filter list using OS name (fedora, ubuntu, ...)")
     sp_list = sub.add_parser("list", help="List VMs")
+    sp_list.add_argument("--long", "-l", action='store_true', help="Display more information")
+    sp_list.add_argument("--usb-ports", "-u", action='store_true', help="List binded USB ports")
+    sp_list.add_argument("--disks", "-d", action='store_true', help="List disk images")
+    sp_list.add_argument("--cloud-init", "-c", action='store_true', help="Display cloud-init information")
     sp_console = sub.add_parser("console", help="Open VM console")
     sp_console.add_argument("vm", help="VM id or name")
     sp_vnc = sub.add_parser("vnc-proxy", help="Expose VM VNC over a local TCP port")
@@ -913,7 +949,7 @@ def main():
         download(session_token, args)
 
     if args.cmd == "list":
-        list(session_token)
+        list(session_token, args)
 
     if args.cmd == "console":
         console(session_token, args)
