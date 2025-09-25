@@ -522,6 +522,14 @@ def show(session_token, args):
 
     display_info(vm, args)
 
+def delete(session_token, args):
+    vm = select_vm(session_token, args.vm)
+    if not vm:
+        print("VM non trouvée. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
+        sys.exit(1)
+
+    api_request("delete", f"/vm/{vm['id']}", session_token)
+
 @contextmanager
 def raw_terminal():
     import termios, tty
@@ -942,6 +950,8 @@ def parse_args():
     sp_show.add_argument("--usb-ports", "-u", action='store_true', help="List bound USB ports")
     sp_show.add_argument("--disks", "-d", action='store_true', help="List disk images")
     sp_show.add_argument("--cloud-init", "-c", action='store_true', help="Display cloud-init information")
+    sp_delete = sub.add_parser("delete", help="Delete a VM")
+    sp_delete.add_argument("vm", help="VM id or name")
     sp_console = sub.add_parser("console", help="Open VM console")
     sp_console.add_argument("vm", help="VM id or name")
     sp_vnc = sub.add_parser("vnc-proxy", help="Expose VM VNC over a local TCP port")
@@ -1009,6 +1019,9 @@ def main():
 
     if args.cmd == "show":
         show(session_token, args)
+
+    if args.cmd == "delete":
+        delete(session_token, args)
 
     if args.cmd == "console":
         console(session_token, args)
