@@ -672,6 +672,17 @@ def poweron(session_token, args):
 
     api_request("post", f"/vm/{vm_id}/start", session_token)
 
+    if args.console and args.vnc_proxy:
+        asyncio.run(run_vnc_and_console(session_token, vm_id, args.listen, args.port))
+    elif args.console:
+        with raw_terminal():
+            try:
+                asyncio.run(console_link(session_token, vm_id))
+            except KeyboardInterrupt:
+                pass
+    elif args.vnc_proxy:
+        asyncio.run(run_vnc_proxy(session_token, vm_id, args.listen, args.port))
+
 def poweroff(session_token, args):
     vm = select_vm(session_token, args.vm)
     if not vm:
@@ -899,6 +910,10 @@ def parse_args():
     sp_vnc.add_argument("--console", action="store_true", help="Also attach the VM console")
     sp_poweron = sub.add_parser("poweron", help="Power on a VM")
     sp_poweron.add_argument("vm", help="VM id or name")
+    sp_poweron.add_argument("--console", "-c", action="store_true", help="Also attach the VM console")
+    sp_poweron.add_argument("--vnc-proxy", "-v", action="store_true", help="Also expose VM VNC over a local TCP port")
+    sp_poweron.add_argument("--listen", "-l", default="127.0.0.1", help="Bind address (default 127.0.0.1)")
+    sp_poweron.add_argument("--port", "-p", type=int, default=5901, help="Local TCP port (default 5901)")
     sp_poweroff = sub.add_parser("poweroff", help="Power off a VM")
     po_force = sp_poweroff.add_argument("--force", "-f", action='store_true', help="Force power off a VM")
     sp_poweroff.add_argument("vm", help="VM id or name")

@@ -177,13 +177,26 @@ freeboxvm disk delete "/Disque 1/VMs/disk1.qcow2"
 
 ### Power on a VM
 ```bash
-freeboxvm poweron <id|name>
+freeboxvm poweron <id|name> [--console|-c] [--vnc-proxy|-v]
+                   [--listen|-l ADDR] [--port|-p N]
 ```
+- Boots the VM, then (optionally) attaches the console and/or starts the
+  VNC proxy.
+- `--console, -c`     : attach interactive console (detach Ctrl-A D)
+- `--vnc-proxy, -v`   : expose VNC over a local TCP port
+- `--listen, -l ADDR` : bind address for VNC proxy (default 127.0.0.1)
+- `--port, -p N`      : TCP port for VNC proxy (default 5901)
 
 Examples:
 ```bash
-freeboxvm poweron 1
-freeboxvm poweron Ubuntu-22.04
+# Power on and attach console
+freeboxvm poweron 12 --console
+
+# Power on and start VNC proxy on 0.0.0.0:5902
+freeboxvm poweron 12 --vnc-proxy -l 0.0.0.0 -p 5902
+
+# Power on, attach console and run VNC proxy together
+freeboxvm poweron Debian-11 -c -v
 ```
 
 ---
