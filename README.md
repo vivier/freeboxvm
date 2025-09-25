@@ -255,6 +255,17 @@ freeboxvm reset Debian-11
 
 ---
 
+### Delete a VM
+```bash
+freeboxvm delete <id|name>
+- `--disk, -d`     : Also delete disks and efivars
+- `--force, -f`    : Delete a running VM
+```
+Remove the specified virtual machine by its numeric **id** or **name**.
+Consider powering off the VM first if deletion fails.
+
+---
+
 ### Display Freebox system info
 ```bash
 freeboxvm system

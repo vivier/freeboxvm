@@ -522,6 +522,31 @@ def show(session_token, args):
 
     display_info(vm, args)
 
+def delete(session_token, args):
+    vm = select_vm(session_token, args.vm)
+    if not vm:
+        print("VM non trouvée. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
+        sys.exit(1)
+
+    if vm['status'] != 'stopped':
+        if args.force:
+            print("La VM est allumée, destruction forcée")
+            api_request("post", f"/vm/{vm['id']}/stop", session_token)
+            while vm['status'] != 'stopped':
+                time.sleep(0.2)
+                vm = api_request("get", f"/vm/{vm['id']}", session_token)
+        else:
+            print(f"La VM est allumée ({vm['status']}), annulation de l'effacement")
+            return
+
+    disk_path_b64 = vm['disk_path']
+    api_request("delete", f"/vm/{vm['id']}", session_token)
+    if disk_path_b64:
+        efivars_path = base64.b64decode(disk_path_b64).decode('utf-8') + '.efivars'
+        efivars_path_b64 = base64.b64encode(efivars_path.encode("utf-8")).decode("ascii")
+        api_request("post", "/fs/rm/", session_token, json={ 'files': [ efivars_path_b64 ] })
+        api_request("post", "/fs/rm/", session_token, json={ 'files': [ disk_path_b64 ] })
+
 @contextmanager
 def raw_terminal():
     import termios, tty
@@ -942,6 +967,10 @@ def parse_args():
     sp_show.add_argument("--usb-ports", "-u", action='store_true', help="List bound USB ports")
     sp_show.add_argument("--disks", "-d", action='store_true', help="List disk images")
     sp_show.add_argument("--cloud-init", "-c", action='store_true', help="Display cloud-init information")
+    sp_delete = sub.add_parser("delete", help="Delete a VM")
+    sp_delete.add_argument("--disk", "-d", action='store_true', help="Delete disk image")
+    sp_delete.add_argument("--force", "-f", action='store_true', help="Delete even if the VM is running")
+    sp_delete.add_argument("vm", help="VM id or name")
     sp_console = sub.add_parser("console", help="Open VM console")
     sp_console.add_argument("vm", help="VM id or name")
     sp_vnc = sub.add_parser("vnc-proxy", help="Expose VM VNC over a local TCP port")
@@ -1009,6 +1038,9 @@ def main():
 
     if args.cmd == "show":
         show(session_token, args)
+
+    if args.cmd == "delete":
+        delete(session_token, args)
 
     if args.cmd == "console":
         console(session_token, args)
