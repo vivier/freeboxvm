@@ -547,6 +547,65 @@ def delete(session_token, args):
         api_request("post", "/fs/rm/", session_token, json={ 'files': [ efivars_path_b64 ] })
         api_request("post", "/fs/rm/", session_token, json={ 'files': [ disk_path_b64 ] })
 
+def get_file(session_token, request, background):
+    resp = api_request("post", "/downloads/add", session_token, data=request)
+    if not resp:
+       print("Echec")
+       return
+
+    if background:
+        print("Téléchargement démarré sur la Freebox, consultez l'utilitaire 'Téléchargements'")
+        return None
+
+    task_id = resp['id']
+    try:
+        filesize = 0
+        while not filesize:
+            time.sleep(0.1)
+            task = api_request("get", f"/downloads/{task_id}", session_token)
+            if task['status'] != 'downloading':
+                break
+            filesize = task['size']
+
+        rxsize = 0
+        lastrxsize = 0
+        t = tqdm(total=filesize,unit_scale=True,unit='o')
+
+        while rxsize != filesize:
+            task = api_request("get", f"/downloads/{task_id}", session_token)
+            if task['status'] != 'downloading':
+                break
+            rxsize = task['rx_bytes']
+            t.update(rxsize - lastrxsize)
+            lastrxsize = rxsize
+            time.sleep(0.1)
+        t.close()
+        task = api_request("get", f"/downloads/{task_id}", session_token)
+        if task['status'] == 'checking':
+            print("Checking SHA")
+        while True:
+            task = api_request("get", f"/downloads/{task_id}", session_token)
+            if task['status'] != 'checking':
+                break
+            time.sleep(0.5)
+        print(task['status'])
+    except KeyboardInterrupt:
+        t.close()
+        # On Ctrl-C remove the task and the file
+        task = api_request("delete", f"/downloads/{task_id}/erase", session_token)
+        print("Interrompu... fichier effacé")
+        return None
+    # On success remove the task but keep the file
+    if task['status'] != 'done':
+        print("Erreur de téléchargement... fichier effacé")
+        task = api_request("delete", f"/downloads/{task_id}/erase", session_token)
+        return None
+    else:
+        destdir = base64.b64decode(task['download_dir']).decode('utf-8')
+        filepath = os.path.join(destdir, task['name'])
+        task = api_request("delete", f"/downloads/{task_id}", session_token)
+        return filepath
+
 @contextmanager
 def raw_terminal():
     import termios, tty
@@ -817,50 +876,9 @@ def download(session_token, args):
                 'hash': args.hash
             }
 
-    resp = api_request("post", "/downloads/add", session_token, data=request)
-    if not resp:
-       print("Echec")
-       return
-
-    if args.background:
-        print("Téléchargement démarré sur la Freebox, consultez l'utilitaire 'Téléchargements'")
-        return
-
-    try:
-        filesize = 0
-        while not filesize:
-            time.sleep(0.1)
-            task = api_request("get", f"/downloads/{resp['id']}", session_token)
-            if task['status'] != 'downloading':
-                break
-            filesize = task['size']
-
-        rxsize = 0
-        lastrxsize = 0
-        t = tqdm(total=filesize,unit_scale=True,unit='o')
-
-        while rxsize != filesize:
-            task = api_request("get", f"/downloads/{resp['id']}", session_token)
-            if task['status'] != 'downloading':
-                break
-            rxsize = task['rx_bytes']
-            t.update(rxsize - lastrxsize)
-            lastrxsize = rxsize
-            time.sleep(0.1)
-        t.close()
-        task = api_request("get", f"/downloads/{resp['id']}", session_token)
-        if task['status'] == 'checking':
-            print("Checking SHA")
-        while True:
-            task = api_request("get", f"/downloads/{resp['id']}", session_token)
-            if task['status'] != 'checking':
-                break
-            time.sleep(0.5)
-        print(task['status'])
-    except KeyboardInterrupt:
-        t.close()
-        task = api_request("delete", f"/downloads/{resp['id']}/erase", session_token)
-        print("Interrupted... file deleted")
+    filepath = get_file(session_token, request, args.background)
+    if filepath:
+        print(f"{filepath} a été téléchargé")
 
 def disk_create(session_token, args):
     task_id = api_request("post", '/vm/disk/create', session_token, json={
