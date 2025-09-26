@@ -88,7 +88,7 @@ def api_request(method, endpoint, session_token=None, **kwargs):
         if data.get('success'):
             return data.get('result')
         else:
-            print(f"Erreur d'API sur {endpoint}: {data.get('msg')}")
+            print(f"{endpoint}: {data.get('msg')}")
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 403:
             return "forbidden" # Return a special string for 403 errors
@@ -270,6 +270,20 @@ def display_info(vm, args):
             print(vm.get('cloudinit_userdata'))
         else:
             print("\tCloud-init is disabled")
+
+def human_size(hsize):
+    # size will be number of kilibytes
+    tens = dict(k=2**0, m=2**10, b=2**20, g=2**30, t=2**40)
+
+    try:
+        return int(int(hsize) / 2**10)
+    except:
+        number, unit = hsize[0:-1], hsize[-1].lower()
+
+        if unit in tens.keys():
+            return int(float(number) * tens[unit])
+
+        return None
 
 def list(session_token, args):
     vm_list = get_vm_list(session_token)
@@ -606,6 +620,156 @@ def get_file(session_token, request, background):
         task = api_request("delete", f"/downloads/{task_id}", session_token)
         return filepath
 
+def install(session_token, args):
+    download_dir = "/Disque 1/VMs/"
+    download_dir_b64 = base64.b64encode(download_dir.encode("utf-8")).decode("ascii")
+
+    vm = { }
+
+    if args.vnc_proxy and not args.enable_screen:
+        print("--enable-screen est nécessaire pour utiliser --vnc-proxy")
+        return
+
+    os_name = args.os
+
+    cdrom_path = args.cdrom
+    disk_path = args.disk
+
+    if args.name:
+        vm['name'] = args.name
+
+    if args.disk_size:
+        disk_size = human_size(args.disk_size)
+
+    if args.vcpus:
+        vm['vcpus'] = args.vcpus
+
+    if args.memory:
+        vm['memory'] = args.memory
+
+    hash = None
+    location = None
+    if args.install:
+        if args.cloud_init:
+            distro_list = get_list_distro(session_token)
+            distro = next((item for item in distro_list if item['short-id'] == args.install), None)
+            if not distro:
+                distro_list = get_list_extra_distro()
+                distro = next((item for item in distro_list if item['short-id'] == args.install), None)
+        else:
+            distro_list = get_list_iso()
+            distro = next((item for item in distro_list if item['short-id'] == args.install), None)
+
+        if not distro:
+            print(f"Distribution inconnue: {args.install}")
+            return
+
+        location = distro['url']
+        hash = distro['hash']
+        os_name = distro['os']
+
+    if args.location:
+        location = args.location
+
+    if location:
+        print(f"location: {location}")
+        if hash:
+            print(f"hash: {hash}")
+        if args.cdrom:
+            print("--location et --cdrom sont mutuellement exclusifs")
+            return
+
+        request = {
+           'download_url': location,
+           'download_dir': download_dir_b64,
+           'hash': hash,
+        }
+        if args.cloud_init and args.disk:
+            request['filename'] = os.path.basename(args.disk)
+
+        print(f"Téléchargement de {location}")
+        filepath = get_file(session_token, request, False)
+        if not filepath:
+            return
+        print(f"Le fichier {filepath} a été téléchargé")
+
+        if args.cloud_init:
+            disk_path = filepath
+        else:
+            cdrom_path = filepath
+
+    if os_name:
+        vm['os'] = os_name
+        print(f"OS: {os_name}")
+
+    if cdrom_path:
+        cd_path_b64 = base64.b64encode(cdrom_path.encode("utf-8")).decode("ascii")
+        vm['cd_path'] = cd_path_b64
+
+    if disk_path:
+        disk_path_b64 = base64.b64encode(disk_path.encode("utf-8")).decode("ascii")
+
+        info = api_request("post", f"/vm/disk/info", session_token, json={ 'disk_path': disk_path_b64 })
+        if not info:
+            if not args.disk_size:
+                print(f"Le disque {disk_path} n'existe pas, et la taille n'a pas été spécifiée pour se création")
+                return
+            if disk_path.lower().endswith(".qcow2"):
+                disk_type = "qcow2"
+            elif disk_path.lower().endswith((".img", ".raw")):
+                disk_type = "raw"
+            else:
+                print(f"Le type du fichier {disk_path} n'a pas pu être déterminé.")
+                return
+            asyncio.run(disk_execute(session_token, disk_create, {
+                'path_b64': disk_path_b64,
+                'size': disk_size,
+                'type': disk_type
+            }))
+            info = api_request("post", f"/vm/disk/info", session_token, json={ 'disk_path': disk_path_b64 })
+            print(f"Disque créé à {disk_path} de taille {info['virtual_size']}, type {disk_type}")
+
+        if info['virtual_size'] < disk_size:
+            asyncio.run(disk_execute(session_token, disk_resize, {
+                'path_b64': disk_path_b64,
+                'size': disk_size,
+                'shrink_allow': False
+            }))
+            info = api_request("post", f"/vm/disk/info", session_token, json={ 'disk_path': disk_path_b64 })
+            print(f"Disque redimensionné à {info['virtual_size']}")
+
+        vm['disk_path'] = disk_path_b64
+        vm['disk_type'] = info['type']
+
+    if args.cloud_init:
+        vm['enable_cloudinit'] = True
+        vm['cloudinit_hostname'] = args.cloud_init_hostname
+        with args.cloud_init_userdata as file:
+                vm['cloudinit_userdata'] = file.read()
+
+    vm['enable_screen'] = args.enable_screen;
+
+    vm['bind_usb_ports'] = [ ]
+
+    res = api_request("post", "/vm/", session_token, json = vm )
+    vm_id = res['id']
+    vm_name = res['name']
+
+    res = api_request("post", f"/vm/{vm_id}/start", session_token)
+
+    if args.console and args.vnc_proxy:
+        print(f"Proxy VNC pour {vm_name} (VM #{vm_id}) sur {args.listen}:{args.port}")
+        asyncio.run(run_vnc_and_console(session_token, vm_id, args.listen, args.port))
+    elif args.console:
+        with raw_terminal():
+            try:
+                asyncio.run(console_link(session_token, vm_id))
+            except KeyboardInterrupt:
+                pass
+    elif args.vnc_proxy:
+        print(f"Proxy VNC pour {vm_name} (VM #{vm_id}) sur {args.listen}:{args.port}")
+        asyncio.run(run_vnc_proxy(session_token, vm_id, args.listen, args.port))
+
 @contextmanager
 def raw_terminal():
     import termios, tty
@@ -927,17 +1091,12 @@ async def disk_execute(session_token, action, args):
     api_request("delete", f"/vm/disk/task/{task_id['id']}", session_token)
 
 def disk(session_token, args):
-    tens = dict(k=2**0, m=2**10, b=2**20, g=2**30, t=2**40)
 
     if args.path:
         disk_path_b64 = base64.b64encode(args.path.encode("utf-8")).decode("ascii")
 
     if hasattr(args, "size"):
-        size, unit = args.size[0:-1], args.size[-1].lower()
-        if unit in tens.keys():
-            disk_size = int(float(size) * tens[unit])
-        else:
-            disk_size = args.size
+        disk_size = human_size(args.size)
 
     if args.action == 'create':
         asyncio.run(disk_execute(session_token, disk_create, {
@@ -990,6 +1149,27 @@ def parse_args():
     sp_delete.add_argument("--force", "-f", action='store_true', help="Delete even if the VM is running")
     sp_delete.add_argument("vm", help="VM id or name")
     sp_console = sub.add_parser("console", help="Open VM console")
+
+    sp_install = sub.add_parser("install", help="Install a new VM")
+    sp_install.add_argument("--console", "-c", action="store_true", help="Attach the VM console on boot")
+    sp_install.add_argument("--vnc-proxy", "-v", action="store_true", help="Expose VM VNC over a local TCP port on boot")
+    sp_install.add_argument("--listen", "-l", default="127.0.0.1", help="Bind address (default 127.0.0.1)")
+    sp_install.add_argument("--port", "-p", type=int, default=5901, help="Local TCP port (default 5901)")
+    sp_install.add_argument("--install", "-i", help="Distro short-id to install (see os-list)")
+    sp_install.add_argument("--name", "-n", help="Name of the VM")
+    sp_install.add_argument("--memory", help="Memory size of the VM")
+    sp_install.add_argument("--vcpus", help="Number of vCPUs")
+    sp_install.add_argument("--cdrom", help="CDROM image path")
+    sp_install.add_argument("--location", help="Boot CD URL")
+    sp_install.add_argument("--disk", help="Disk image")
+    sp_install.add_argument("--disk-size", help="Set disk image")
+    sp_install.add_argument("--cloud-init", action="store_true", help="Enable cloud-init")
+    sp_install.add_argument("--cloud-init-hostname", help="Set cloud-init hostname")
+    sp_install.add_argument("--cloud-init-userdata", type=argparse.FileType("r"), help="Load cloud-init user-data from this file")
+    sp_install.add_argument("--enable-screen", action="store_true", help="Enable screen")
+    sp_install.add_argument("--os", help="OS name")
+
+
     sp_console.add_argument("vm", help="VM id or name")
     sp_vnc = sub.add_parser("vnc-proxy", help="Expose VM VNC over a local TCP port")
     sp_vnc.add_argument("vm", help="VM id or name")
@@ -1059,6 +1239,9 @@ def main():
 
     if args.cmd == "delete":
         delete(session_token, args)
+
+    if args.cmd == "install":
+        install(session_token, args)
 
     if args.cmd == "console":
         console(session_token, args)

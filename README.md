@@ -200,6 +200,59 @@ freeboxvm disk delete "/Disque 1/VMs/disk1.qcow2"
 
 ---
 
+### Install a new VM
+```bash
+freeboxvm install [options]
+```
+Create and boot a new VM from either a cloud image or an install ISO.
+Optionally attach the console and/or start a local VNC proxy.
+
+Options:
+- `-i, --install ID`             : distro short-id (see `os-list` or `--extra` for cloud-init images, `--iso` for ISOs)
+- `-n, --name NAME`              : VM name
+- `--os NAME`                    : OS name (if not inferred)
+- `--vcpus N`                    : number of virtual CPUs
+- `--memory N`                   : memory size in MiB
+- `--disk PATH`                  : disk image path
+- `--disk-size SIZE`             : disk size (accepts k/m/g/t suffixes or raw bytes)
+- `--cdrom PATH`                 : ISO path (for installs from ISO)
+- `--location URL`               : boot CD/image URL (mutually exclusive with `--cdrom`)
+- `--cloud-init`                 : enable cloud-init
+- `--cloud-init-hostname NAME`   : cloud-init hostname
+- `--cloud-init-userdata FILE`   : cloud-init user-data file
+- `--enable-screen`              : enable VM screen (VNC-over-WebSocket on Freebox)
+- `-c, --console`                : attach console after boot
+- `-v, --vnc-proxy`              : start VNC proxy after boot (requires `--enable-screen`)
+- `-l, --listen ADDR`            : bind address for VNC proxy (default `127.0.0.1`)
+- `-p, --port N`                 : TCP port for VNC proxy (default `5901`)
+
+Notes:
+- When `--install` or `--location` is provided, the image is downloaded
+  via the Freebox Download Manager to the default directory `/Disque 1/VMs/`,
+  with progress, checksum verification, and cleanup on error.
+- For cloud images, the downloaded file becomes the VM disk image.
+- If `--disk` points to a non-existent file, `--disk-size` must be provided
+  so the tool can create the image (qcow2/raw type inferred by extension).
+- Disks can be resized automatically if smaller than `--disk-size`.
+
+Flow:
+1. Resolve short-id or URL and download image if needed.
+2. Create or resize the VM disk as required.
+3. Configure VM properties (`--name`, `--os`, `--vcpus`, `--memory`).
+4. Apply cloud-init if enabled.
+5. POST `/vm/` to create, then `/vm/<id>/start` to boot.
+6. Optionally attach console and/or start VNC proxy.
+
+Examples:
+```bash
+# Install from a distro short-id as a cloud image, enable cloud-init, attach console
+freeboxvm install -n Fedora-cloud --vcpus 1 --memory 512 --console   --cloud-init --cloud-init-hostname Fabulous   --cloud-init-userdata cloud-init-user-data.yaml   -i fedora41 --disk Fabulous.qcow2 --disk-size 10g
+
+# Install from a CDROM install URL, attach console and vnc-proxy
+freeboxvm install -n Fedora-test --os fedora   --location https://download.fedoraproject.org/pub/fedora/linux/releases/41/Everything/aarch64/iso/Fedora-Everything-netinst-aarch64-41-1.4.iso   --disk "/Disque 1/VMs/test.qcow2" --disk-size 20g   --vcpus 2 --memory 2048 --console --vnc-proxy --enable-screen
+```
+
+
 ### Power on a VM
 ```bash
 freeboxvm poweron <id|name> [--console|-c] [--vnc-proxy|-v]
