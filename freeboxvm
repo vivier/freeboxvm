@@ -174,8 +174,12 @@ async def console_link(session_token, vm_id):
         loop = asyncio.get_running_loop()
 
         CTRL_A = b"\x01"              # Ctrl-A
+        HELP_KEYS = { b"?" } # Ctrl-A ?
         DETACH_KEYS = { b"d", b"D" } # Ctrl-A D
         PASSTHRU_KEYS = { b"a", b"A" } # Ctrl-A A
+        HALT_KEYS = { b"h", b"H" } # Ctrl-A H
+        RESET_KEYS = { b"r", b"R" } # Ctrl-A R
+        STOP_KEYS = { b"s", b"S" } # Ctrl-A S
 
         async def rx():
             async for msg in ws:
@@ -196,6 +200,20 @@ async def console_link(session_token, vm_id):
                     if data in DETACH_KEYS:
                         await ws.close()
                         return
+                    elif data in HELP_KEYS:
+                        print("\r")
+                        print("    Ctrl-A ? : Affiche l'aide\r")
+                        print("    Ctrl-A D : Détache la console\r")
+                        print("    Ctrl-A H : Arrête la VM\r")
+                        print("    Ctrl-A S : Force l'arrêt de la VM\r")
+                        print("    Ctrl-A R : Redémarre la VM\r")
+                        print("    Ctrl-A A : Envoie Ctrl-A a la console\r")
+                    elif data in HALT_KEYS:
+                        api_request("post", f"/vm/{vm_id}/powerbutton", session_token)
+                    elif data in STOP_KEYS:
+                        api_request("post", f"/vm/{vm_id}/stop", session_token)
+                    elif data in RESET_KEYS:
+                        api_request("post", f"/vm/{vm_id}/restart", session_token)
                     elif data in PASSTHRU_KEYS:
                         await ws.send(CTRL_A)
                     else:
@@ -207,7 +225,10 @@ async def console_link(session_token, vm_id):
                 else:
                     await ws.send(data)
 
-        await asyncio.gather(rx(), tx())
+        try:
+            await asyncio.gather(rx(), tx())
+        except ConnectionClosed:
+            return
 
 def system_info(session_token):
     info = api_request("get", "/vm/info/", session_token)

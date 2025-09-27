@@ -81,8 +81,12 @@ default_user:
 freeboxvm console <id|name>
 ```
 
-- Exit with **Ctrl+C** or **Ctrl-A D**.
+- Exit with **Ctrl-A D**.
 - Send a literal **Ctrl-A** to the VM with **Ctrl-A A**.
+- Reset the VM with **Ctrl-A R**
+- Halt the VM with **Ctrl-A H**
+- Stop the VM with **Ctrl-A S**
+- Display Ctrl-A help with **Ctrl-A ?**
 
 Examples:
 ```bash
