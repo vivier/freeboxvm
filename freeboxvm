@@ -1125,6 +1125,8 @@ def disk(session_token, args):
 def parse_args():
     p = argparse.ArgumentParser(prog="freeboxvm", description="Freebox VM manager")
 
+    p.add_argument("--version", action="version", version=f"%(prog)s {APP_VERSION}")
+
     sub = p.add_subparsers(dest="cmd", required=True)
     sp_system = sub.add_parser("system", help="Display Freebox system info")
     sp_list_os = sub.add_parser("os-list", help="List installable distributions")
