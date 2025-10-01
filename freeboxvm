@@ -1123,41 +1123,79 @@ def disk(session_token, args):
         print(f"Taille virtuelle: {humanize.naturalsize(info['virtual_size'], binary=True)} Espace occupé: {humanize.naturalsize(info['actual_size'], binary=True)} type: {info['type']}")
 
 def parse_args():
-    p = argparse.ArgumentParser(prog="freeboxvm", description="Freebox VM manager")
+    p = argparse.ArgumentParser(prog="freeboxvm",
+                                description="Freebox VM manager")
 
-    p.add_argument("--version", action="version", version=f"%(prog)s {APP_VERSION}")
+    p.add_argument("--version", action="version",
+                   version=f"%(prog)s {APP_VERSION}")
 
     sub = p.add_subparsers(dest="cmd", required=True)
-    sp_system = sub.add_parser("system", help="Display Freebox system info")
-    sp_list_os = sub.add_parser("os-list", help="List installable distributions")
-    sp_list_os.add_argument("--long", "-l", action='store_true', help="Display more information")
-    sp_list_os.add_argument("--extra", "-e", action='store_true', help="List available distributions from external sources")
-    sp_list_os.add_argument("--check", "-c", action='store_true', help="Check the URL is valid")
-    sp_list_os.add_argument("--iso", "-i", action='store_true', help="List available install ISO")
-    sp_list_os.add_argument("--os", "-o", type=str, help="Filter list using OS name (fedora, ubuntu, ...)")
-    sp_list = sub.add_parser("list", help="List VMs")
-    sp_list.add_argument("--long", "-l", action='store_true', help="Display more information")
-    sp_list.add_argument("--usb-ports", "-u", action='store_true', help="List bound USB ports")
-    sp_list.add_argument("--disks", "-d", action='store_true', help="List disk images")
-    sp_list.add_argument("--cloud-init", "-c", action='store_true', help="Display cloud-init information")
-    sp_show = sub.add_parser("show", help="Show information of a VM")
-    sp_show.add_argument("vm", help="VM id or name")
-    sp_show.add_argument("--long", "-l", action='store_true', help="Display more information")
-    sp_show.add_argument("--usb-ports", "-u", action='store_true', help="List bound USB ports")
-    sp_show.add_argument("--disks", "-d", action='store_true', help="List disk images")
-    sp_show.add_argument("--cloud-init", "-c", action='store_true', help="Display cloud-init information")
-    sp_delete = sub.add_parser("delete", help="Delete a VM")
-    sp_delete.add_argument("--disk", "-d", action='store_true', help="Delete disk image")
-    sp_delete.add_argument("--force", "-f", action='store_true', help="Delete even if the VM is running")
-    sp_delete.add_argument("vm", help="VM id or name")
-    sp_console = sub.add_parser("console", help="Open VM console")
 
+    # system
+    sp_system = sub.add_parser("system",
+                               help="Display Freebox system info")
+
+    # os-list
+    sp_list_os = sub.add_parser("os-list",
+                                help="List installable distributions")
+    sp_list_os.add_argument("--long", "-l", action='store_true',
+                            help="Display more information")
+    sp_list_os.add_argument("--extra", "-e", action='store_true',
+                    help="List available distributions from external sources")
+    sp_list_os.add_argument("--check", "-c", action='store_true',
+                            help="Check the URL is valid")
+    sp_list_os.add_argument("--iso", "-i", action='store_true',
+                            help="List available install ISO")
+    sp_list_os.add_argument("--os", "-o", type=str,
+                        help="Filter list using OS name (fedora, ubuntu, ...)")
+
+    # list
+    sp_list = sub.add_parser("list", help="List VMs")
+    sp_list.add_argument("--long", "-l", action='store_true',
+                         help="Display more information")
+    sp_list.add_argument("--usb-ports", "-u", action='store_true',
+                         help="List bound USB ports")
+    sp_list.add_argument("--disks", "-d", action='store_true',
+                         help="List disk images")
+    sp_list.add_argument("--cloud-init", "-c", action='store_true',
+                         help="Display cloud-init information")
+
+    # show
+    sp_show = sub.add_parser("show", help="Show information of a VM")
+    sp_show.add_argument("--long", "-l", action='store_true',
+                         help="Display more information")
+    sp_show.add_argument("--usb-ports", "-u", action='store_true',
+                         help="List bound USB ports")
+    sp_show.add_argument("--disks", "-d", action='store_true',
+                         help="List disk images")
+    sp_show.add_argument("--cloud-init", "-c", action='store_true',
+                         help="Display cloud-init information")
+    sp_show.add_argument("vm", help="VM id or name")
+
+    # delete
+    sp_delete = sub.add_parser("delete", help="Delete a VM")
+    sp_delete.add_argument("--disk", "-d", action='store_true',
+                           help="Delete disk image")
+    sp_delete.add_argument("--force", "-f", action='store_true',
+                           help="Delete even if the VM is running")
+    sp_delete.add_argument("vm", help="VM id or name")
+
+    # console
+    sp_console = sub.add_parser("console", help="Open VM console")
+    sp_console.add_argument("vm", help="VM id or name")
+
+    # install
     sp_install = sub.add_parser("install", help="Install a new VM")
-    sp_install.add_argument("--console", "-c", action="store_true", help="Attach the VM console on boot")
-    sp_install.add_argument("--vnc-proxy", "-v", action="store_true", help="Expose VM VNC over a local TCP port on boot")
-    sp_install.add_argument("--listen", "-l", default="127.0.0.1", help="Bind address (default 127.0.0.1)")
-    sp_install.add_argument("--port", "-p", type=int, default=5901, help="Local TCP port (default 5901)")
-    sp_install.add_argument("--install", "-i", help="Distro short-id to install (see os-list)")
+    sp_install.add_argument("--console", "-c", action="store_true",
+                            help="Attach the VM console on boot")
+    sp_install.add_argument("--vnc-proxy", "-v", action="store_true",
+                            help="Expose VM VNC over a local TCP port on boot")
+    sp_install.add_argument("--listen", "-l", default="127.0.0.1",
+                            help="Bind address (default 127.0.0.1)")
+    sp_install.add_argument("--port", "-p", type=int, default=5901,
+                            help="Local TCP port (default 5901)")
+    sp_install.add_argument("--install", "-i",
+                            help="Distro short-id to install (see os-list)")
     sp_install.add_argument("--name", "-n", help="Name of the VM")
     sp_install.add_argument("--memory", help="Memory size of the VM")
     sp_install.add_argument("--vcpus", help="Number of vCPUs")
@@ -1165,52 +1203,96 @@ def parse_args():
     sp_install.add_argument("--location", help="Boot CD URL")
     sp_install.add_argument("--disk", help="Disk image")
     sp_install.add_argument("--disk-size", help="Set disk image")
-    sp_install.add_argument("--cloud-init", action="store_true", help="Enable cloud-init")
-    sp_install.add_argument("--cloud-init-hostname", help="Set cloud-init hostname")
-    sp_install.add_argument("--cloud-init-userdata", type=argparse.FileType("r"), help="Load cloud-init user-data from this file")
-    sp_install.add_argument("--enable-screen", action="store_true", help="Enable screen")
+    sp_install.add_argument("--cloud-init", action="store_true",
+                            help="Enable cloud-init")
+    sp_install.add_argument("--cloud-init-hostname",
+                            help="Set cloud-init hostname")
+    sp_install.add_argument("--cloud-init-userdata",
+                            type=argparse.FileType("r"),
+                            help="Load cloud-init user-data from this file")
+    sp_install.add_argument("--enable-screen", action="store_true",
+                            help="Enable screen")
     sp_install.add_argument("--os", help="OS name")
 
-
-    sp_console.add_argument("vm", help="VM id or name")
-    sp_vnc = sub.add_parser("vnc-proxy", help="Expose VM VNC over a local TCP port")
+    # vnx-proxy
+    sp_vnc = sub.add_parser("vnc-proxy",
+                            help="Expose VM VNC over a local TCP port")
     sp_vnc.add_argument("vm", help="VM id or name")
-    sp_vnc.add_argument("--listen", "-l", default="127.0.0.1", help="Bind address (default 127.0.0.1)")
-    sp_vnc.add_argument("--port", "-p", type=int, default=5901, help="Local TCP port (default 5901)")
-    sp_vnc.add_argument("--console", action="store_true", help="Also attach the VM console")
+    sp_vnc.add_argument("--listen", "-l", default="127.0.0.1",
+                        help="Bind address (default 127.0.0.1)")
+    sp_vnc.add_argument("--port", "-p", type=int, default=5901,
+                        help="Local TCP port (default 5901)")
+    sp_vnc.add_argument("--console", action="store_true",
+                        help="Also attach the VM console")
+
+    # poweron
     sp_poweron = sub.add_parser("poweron", help="Power on a VM")
     sp_poweron.add_argument("vm", help="VM id or name")
-    sp_poweron.add_argument("--console", "-c", action="store_true", help="Also attach the VM console")
-    sp_poweron.add_argument("--vnc-proxy", "-v", action="store_true", help="Also expose VM VNC over a local TCP port")
-    sp_poweron.add_argument("--listen", "-l", default="127.0.0.1", help="Bind address (default 127.0.0.1)")
-    sp_poweron.add_argument("--port", "-p", type=int, default=5901, help="Local TCP port (default 5901)")
-    sp_poweroff = sub.add_parser("poweroff", help="Power off a VM")
-    po_force = sp_poweroff.add_argument("--force", "-f", action='store_true', help="Force power off a VM")
+    sp_poweron.add_argument("--console", "-c", action="store_true",
+                            help="Also attach the VM console")
+    sp_poweron.add_argument("--vnc-proxy", "-v", action="store_true",
+                            help="Also expose VM VNC over a local TCP port")
+    sp_poweron.add_argument("--listen", "-l", default="127.0.0.1",
+                            help="Bind address (default 127.0.0.1)")
+    sp_poweron.add_argument("--port", "-p", type=int, default=5901,
+                            help="Local TCP port (default 5901)")
+
+    # poweroff
+    sp_poweroff = sub.add_parser("poweroff",
+                                 help="Power off a VM")
+    sp_poweroff.add_argument("--force", "-f", action='store_true',
+                            help="Force power off a VM")
     sp_poweroff.add_argument("vm", help="VM id or name")
+
+    # reset
     sp_reset = sub.add_parser("reset", help="Reset on a VM")
     sp_reset.add_argument("vm", help="VM id or name")
-    sp_download = sub.add_parser("download", help="Download a disk/cdrom image")
-    sp_download.add_argument("--iso", "-i", action='store_true', help="select an ISO rather than a disk image")
-    sp_download.add_argument("short_id", metavar="short-id", nargs="?", type=str, help="distro short-id")
-    sp_download.add_argument("--background", "-b", action='store_true', help="Download in background")
-    sp_download.add_argument("--url", "-u", type=str, help="Don't use short-id, provide the URL")
-    sp_download.add_argument("--hash", "-a", type=str, help="Don't use short-id, provide the hash")
-    sp_download.add_argument("--filename", "-f", type=str, help="Provide filename to store the file")
-    sp_download.add_argument("--directory", "-d", type=str, help="Freebox directory to store the file")
 
+    # download
+    sp_download = sub.add_parser("download", help="Download a disk/cdrom image")
+    sp_download.add_argument("--iso", "-i", action='store_true',
+                             help="select an ISO rather than a disk image")
+    sp_download.add_argument("short_id", metavar="short-id", nargs="?",
+                             type=str, help="distro short-id")
+    sp_download.add_argument("--background", "-b", action='store_true',
+                             help="Download in background")
+    sp_download.add_argument("--url", "-u", type=str,
+                             help="Don't use short-id, provide the URL")
+    sp_download.add_argument("--hash", "-a", type=str,
+                             help="Don't use short-id, provide the hash")
+    sp_download.add_argument("--filename", "-f", type=str,
+                             help="Provide filename to store the file")
+    sp_download.add_argument("--directory", "-d", type=str,
+                             help="Freebox directory to store the file")
+
+    # disk
     sp_disk = sub.add_parser("disk", help="Manage disk images")
     sp_disk_action = sp_disk.add_subparsers(dest="action", required=True)
-    sp_disk_create = sp_disk_action.add_parser("create", help="Create a new disk image")
-    sp_disk_create.add_argument("--type", "-t", type=str, default='qcow2', help="Disk type")
+
+    # disk create
+    sp_disk_create = sp_disk_action.add_parser("create",
+                                               help="Create a new disk image")
+    sp_disk_create.add_argument("--type", "-t", type=str, default='qcow2',
+                                help="Disk type")
     sp_disk_create.add_argument("path", help="Disk image path")
     sp_disk_create.add_argument("size", help="Disk image size")
-    sp_disk_info = sp_disk_action.add_parser("info", help="Get information on a disk image")
+
+    # disk info
+    sp_disk_info = sp_disk_action.add_parser("info",
+                                        help="Get information on a disk image")
     sp_disk_info.add_argument("path", help="Disk image path")
-    sp_disk_resize = sp_disk_action.add_parser("resize", help="Resize a disk image")
-    sp_disk_resize.add_argument("--shrink-allow", "-a", action='store_true', help="Shrinking the disk is allowed. Can be destructive")
+
+    # disk resize
+    sp_disk_resize = sp_disk_action.add_parser("resize",
+                                               help="Resize a disk image")
+    sp_disk_resize.add_argument("--shrink-allow", "-a", action='store_true',
+                    help="Shrinking the disk is allowed. Can be destructive")
     sp_disk_resize.add_argument("path", help="Disk image path")
     sp_disk_resize.add_argument("size", help="Disk image new size")
-    sp_disk_delete = sp_disk_action.add_parser("delete", help="Delete a disk image")
+
+    # disk delete
+    sp_disk_delete = sp_disk_action.add_parser("delete",
+                                               help="Delete a disk image")
     sp_disk_delete.add_argument("path", help="Disk image path")
 
     return p.parse_args()
