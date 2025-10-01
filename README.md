@@ -9,7 +9,7 @@ via the Freebox OS API v8.
 
 - Python 3.8+
 - Freebox with Freebox OS v8 API
-- Packages: `requests`, `websockets`, `tqdm`, `humanize`, `pygobject`
+- Packages: `requests`, `websockets`, `tqdm`, `humanize`, `PyGObject`
   (for **libosinfo** support)
 
 Install with:

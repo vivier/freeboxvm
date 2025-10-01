@@ -1,5 +1,5 @@
 requests
 websockets
-pygobject
+PyGObject
 tqdm
 humanize
