@@ -1,38 +1,40 @@
 # freeboxvm
 
-A command-line tool to manage and access virtual machines on a Freebox
-via the Freebox OS API v8.
+[![en](https://img.shields.io/badge/lang-en-blue.svg)](README.en.md)
+[![fr](https://img.shields.io/badge/lang-fr-red.svg)](README.md)
+
+Un outil en ligne de commande pour gérer et accéder aux machines virtuelles
+d’une Freebox via l’API Freebox OS v8.
 
 ---
 
-## Requirements
+## Prérequis
 
 - Python 3.8+
-- Freebox with Freebox OS v8 API
-- Packages: `requests`, `websockets`, `tqdm`, `humanize`, `PyGObject`
-  (for **libosinfo** support)
+- Freebox avec API Freebox OS v8
+- Paquets : `requests`, `websockets`, `tqdm`, `humanize`, `PyGObject`
+  (pour le support **libosinfo**)
 
-Install with:
+Installation :
 
 ```bash
 pip install .
 ```
 
-To install dependencies without packaging metadata (for development or
-legacy environments), use:
-
+Pour installer les dépendances sans métadonnées de packaging (développement
+ou environnements anciens) :
 
 ```bash
 pip install -r requirements.txt
 ```
 
-On Fedora you may also need:
+Sur Fedora, vous pourriez avoir besoin de :
 
 ```bash
 sudo dnf install python3-gobject gobject-introspection libosinfo osinfo-db
 ```
 
-On Debian/Ubuntu you may also need:
+Sur Debian/Ubuntu, vous pourriez avoir besoin de :
 
 ```bash
 sudo apt install python3-gi gir1.2-libosinfo-1.0
@@ -40,42 +42,39 @@ sudo apt install python3-gi gir1.2-libosinfo-1.0
 
 ---
 
-## Usage
+## Utilisation
 
-> **Note:** Commands that target a VM now **require** a VM identifier
-> (numeric `id` or `name`). Use `freeboxvm list` to find them.
-
-### List VMs
+### Lister les VMs
 ```bash
 freeboxvm list [--long] [--usb-ports] [--disks] [--cloud-init]
 ```
-- **Default output** shows: `ID  STATUS  NAME`.
-- **--long** adds columns: `OS  MAC  VCPUs  MEMORY  DISPLAY`.
-- **--usb-ports** prints bound USB ports (or "No USB ports").
-- **--disks** prints disk image path/type and optional CD image path.
-- **--cloud-init** prints cloud-init status, hostname and user-data.
+- **Sortie par défaut** : `ID  STATUS  NAME`.
+- **--long** : ajoute les colonnes `OS  MAC  VCPUs  MEMORY  DISPLAY`.
+- **--usb-ports** : affiche les ports USB liés (ou "Aucun port USB").
+- **--disks** : affiche le chemin/type du disque et éventuel CD.
+- **--cloud-init** : affiche l’état cloud-init, hostname et user-data.
 
-Examples:
+Exemples :
 ```bash
-# Short view
+# Vue courte
 freeboxvm list
 ID  STATUS   NAME
 0   running  Debian-11
 1   stopped  Ubuntu-22.04
 
-# Long view with USB ports
+# Vue longue avec ports USB
 freeboxvm list --long --usb-ports
 ID  STATUS   NAME        OS      MAC               VCPUs  MEMORY  DISPLAY
 0   running  Debian-11   debian  aa:bb:cc:dd:ee:ff 2      2048    True
-    USB ports: usb-external-type-a
+    Ports USB : usb-external-type-a
 
-# Disk and cloud-init details
+# Détails disques et cloud-init
 freeboxvm list --disks --cloud-init
 0   running  Debian-11
-    Disk image: Disque 1/VMs/debian.qcow2 (qcow2)
-    CD image: Disque 1/VMs/debian-11.iso
-    Cloud-init hostname: debian
-    Cloud-init user-data:
+    Image disque : Disque 1/VMs/debian.qcow2 (qcow2)
+    Image CD : Disque 1/VMs/debian-11.iso
+    Cloud-init hostname : debian
+    Cloud-init user-data :
 #cloud-config
 system_info:
 default_user:
@@ -84,19 +83,18 @@ default_user:
 
 ---
 
-### Show a single VM
+### Afficher une VM
 ```bash
 freeboxvm show <id|name> [--long] [--usb-ports] [--disks] [--cloud-init]
 ```
-Display information for a single VM. Supports the same optional flags as
-`list`:
+Affiche les informations d’une VM unique. Supporte les mêmes options que `list`.
 
-- **--long, -l**       : add OS, MAC, vCPUs, memory, display flag
-- **--usb-ports, -u**  : show bound USB ports
-- **--disks, -d**      : show disk image path/type and CD image
-- **--cloud-init, -c** : show cloud-init status, hostname and user-data
+- **--long, -l**       : ajouter OS, MAC, vCPUs, mémoire, affichage
+- **--usb-ports, -u**  : afficher les ports USB liés
+- **--disks, -d**      : afficher le chemin/type de l’image disque et l’image CD
+- **--cloud-init, -c** : afficher l’état de cloud-init, le hostname et les user-data
 
-Examples:
+Exemples :
 ```bash
 freeboxvm show 12
 freeboxvm show Debian-11 --long
@@ -105,19 +103,19 @@ freeboxvm show 12 --disks --cloud-init
 
 ---
 
-### Connect to a VM console
+### Se connecter à la console d’une VM
 ```bash
 freeboxvm console <id|name>
 ```
 
-- Exit with **Ctrl-A D**.
-- Send a literal **Ctrl-A** to the VM with **Ctrl-A A**.
-- Reset the VM with **Ctrl-A R**
-- Halt the VM with **Ctrl-A H**
-- Stop the VM with **Ctrl-A S**
-- Display Ctrl-A help with **Ctrl-A ?**
+- Quitter avec **Ctrl-A D**
+- Envoyer un **Ctrl-A** : **Ctrl-A A**
+- Réinitialiser la VM : **Ctrl-A R**
+- Arrêter (halt) la VM : **Ctrl-A H**
+- Stopper la VM : **Ctrl-A S**
+- Aide Ctrl-A : **Ctrl-A ?**
 
-Examples:
+Exemples :
 ```bash
 freeboxvm console 0
 freeboxvm console Debian-11
@@ -125,177 +123,164 @@ freeboxvm console Debian-11
 
 ---
 
-### Expose a VM screen via VNC proxy
+### Exposer l’écran d’une VM via proxy VNC
 ```bash
 freeboxvm vnc-proxy [options] <id|name>
 ```
+Expose l’écran VNC-over-WebSocket d’une VM sur un port TCP local.
 
-Exposes the VM’s VNC-over-WebSocket screen on a local TCP port for use
-with any standard VNC client.
+- `-l, --listen A` : Adresse d’écoute (par défaut `127.0.0.1`).
+- `-p, --port P`   : Port TCP (par défaut `5901`).
+- `--console`      : Lance la console interactive en parallèle.
 
-- `-l, --listen A` : Bind address (default `127.0.0.1`).
-- `-p, --port P`   : Local TCP port (default `5901`).
-- `--console`      : Run the interactive console in parallel with the
-  VNC proxy.
-
-Examples:
+Exemples :
 ```bash
-# Start a VNC proxy for VM id 0 on localhost:5901
+# Proxy VNC pour la VM 0 sur localhost:5901
 freeboxvm vnc-proxy 0
 
-# Start proxy for VM id 12, binding on all interfaces, port 5902
+# Proxy pour la VM 12 sur toutes interfaces, port 5902
 freeboxvm vnc-proxy --listen 0.0.0.0 --port 5902 12
 
-# Run proxy and console together for a VM by name
+# Proxy et console pour une VM par nom
 freeboxvm vnc-proxy --console Debian-11
 ```
 
 ---
 
-### Manage disk images
+### Gestion des disques
 ```bash
 freeboxvm disk <action> [options] <args>
 ```
 
-Manage VM disk images (create, resize, inspect, delete). Sizes accept
-binary suffixes `k`, `m`, `g`, `t` (powers of two); raw bytes are also
-accepted.
+Gérer les images disque des VM (création, redimensionnement, inspection, suppression).  
+Les tailles acceptent des suffixes binaires `k`, `m`, `g`, `t` (puissances de deux) ; les valeurs en octets bruts sont également acceptées.  
 
-Actions:
+Actions :
 
 - **create**
   ```bash
   freeboxvm disk create [--type qcow2] <path> <size>
   ```
-  Create a new disk image (default type `qcow2`).
+
+  Créer une image disque (par défaut qcow2).
 
 - **resize**
   ```bash
   freeboxvm disk resize [--shrink-allow] <path> <new-size>
   ```
-  Resize an existing disk image. Use `--shrink-allow` to permit
-  shrinking (can be destructive).
+
+  Redimensionner une image disque (`--shrink-allow` autorise réduction).
 
 - **info**
   ```bash
   freeboxvm disk info <path>
   ```
-  Display virtual size, actual space used, and type.
+  Afficher taille virtuelle, utilisée, type.
 
 - **delete**
   ```bash
   freeboxvm disk delete <path>
   ```
-  Delete a disk image.
+  Supprimer une image disque.
 
-Examples:
+Exemples :
 ```bash
-# Create a 10 GiB qcow2 image
+# Crée un disque qcow2 de 10 Gio
 freeboxvm disk create "/Disque 1/VMs/disk1.qcow2" 10g
 
-# Grow a disk to 20 GiB
+# Redimensione un disque à 20 Gio
 freeboxvm disk resize "/Disque 1/VMs/disk1.qcow2" 20g
 
-# Allow destructive shrink to 8 GiB
+# Force un redimensionnement destructif (réduction de la taille)
 freeboxvm disk resize --shrink-allow "/Disque 1/VMs/disk1.qcow2" 8g
 
-# Show disk details
+# Affiche les informations relatives au disque
 freeboxvm disk info "/Disque 1/VMs/disk1.qcow2"
 
-# Delete a disk
+# Supprime un disque
 freeboxvm disk delete "/Disque 1/VMs/disk1.qcow2"
 ```
 
 ---
 
-### Install a new VM
+### Installer une nouvelle VM
 ```bash
 freeboxvm install [options]
 ```
-Create and boot a new VM from either a cloud image or an install ISO.
-Optionally attach the console and/or start a local VNC proxy.
+Créer et démarrer une VM depuis une image cloud ou un ISO.
+Peut aussi attacher console et/ou proxy VNC.
 
-Options:
-- `-i, --install ID`             : distro short-id (see `os-list` or `--extra` for cloud-init images, `--iso` for ISOs)
-- `-n, --name NAME`              : VM name
-- `--os NAME`                    : OS name (if not inferred)
-- `--vcpus N`                    : number of virtual CPUs
-- `--memory N`                   : memory size in MiB
-- `--disk PATH`                  : disk image path
-- `--disk-size SIZE`             : disk size (accepts k/m/g/t suffixes or raw bytes)
-- `--cdrom PATH`                 : ISO path (for installs from ISO)
-- `--location URL`               : boot CD/image URL (mutually exclusive with `--cdrom`)
-- `--cloud-init`                 : enable cloud-init
-- `--cloud-init-hostname NAME`   : cloud-init hostname
-- `--cloud-init-userdata FILE`   : cloud-init user-data file
-- `--enable-screen`              : enable VM screen (VNC-over-WebSocket on Freebox)
-- `-c, --console`                : attach console after boot
-- `-v, --vnc-proxy`              : start VNC proxy after boot (requires `--enable-screen`)
-- `-l, --listen ADDR`            : bind address for VNC proxy (default `127.0.0.1`)
-- `-p, --port N`                 : TCP port for VNC proxy (default `5901`)
+Options :
+- `-i, --install ID` : identifiant de distribution (voir `os-list`).
+- `-n, --name`       : nom de la VM.
+- `--os`             : nom de l’OS (si non détecté).
+- `--vcpus`          : nombre de CPUs virtuels.
+- `--memory`         : mémoire (MiB).
+- `--disk PATH`      : chemin image disque.
+- `--disk-size`      : taille disque.
+- `--cdrom PATH`     : ISO d’installation.
+- `--location URL`   : URL CD/ISO (exclusif avec `--cdrom`).
+- `--cloud-init`     : activer cloud-init.
+- `--cloud-init-hostname` : hostname.
+- `--cloud-init-userdata` : fichier user-data.
+- `--enable-screen`  : activer écran (VNC-over-WebSocket).
+- `--console`        : attacher console après boot.
+- `--vnc-proxy`      : démarrer proxy VNC après boot.
+- `--listen`         : adresse d’écoute VNC (par défaut 127.0.0.1).
+- `--port`           : port TCP VNC (par défaut 5901).
 
-Notes:
-- When `--install` or `--location` is provided, the image is downloaded
-  via the Freebox Download Manager to the default directory `/Disque 1/VMs/`,
-  with progress, checksum verification, and cleanup on error.
-- For cloud images, the downloaded file becomes the VM disk image.
-- If `--disk` points to a non-existent file, `--disk-size` must be provided
-  so the tool can create the image (qcow2/raw type inferred by extension).
-- Disks can be resized automatically if smaller than `--disk-size`.
+Notes :
+- Lorsque `--install` ou `--location` est utilisé, l’image est téléchargée via le gestionnaire de téléchargements de la Freebox dans le répertoire par défaut `/Disque 1/VMs/`, avec suivi de progression, vérification de la somme de contrôle et nettoyage en cas d’erreur.
+- Pour les images cloud, le fichier téléchargé devient l’image disque de la VM.
+- Si `--disk` pointe vers un fichier inexistant, `--disk-size` doit être fourni afin que l’outil puisse créer l’image (le type qcow2/raw est déduit de l’extension).
+- Les disques peuvent être redimensionnés automatiquement s’ils sont plus petits que la taille indiquée par `--disk-size`.
 
-Flow:
-1. Resolve short-id or URL and download image if needed.
-2. Create or resize the VM disk as required.
-3. Configure VM properties (`--name`, `--os`, `--vcpus`, `--memory`).
-4. Apply cloud-init if enabled.
-5. POST `/vm/` to create, then `/vm/<id>/start` to boot.
-6. Optionally attach console and/or start VNC proxy.
-
-Examples:
+Exemple :
 ```bash
-# Install from a distro short-id as a cloud image, enable cloud-init, attach console
+# Installer depuis un identifiant de distribution (cloud image), activer cloud-init et attacher la console
 freeboxvm install -n Fedora-cloud --vcpus 1 --memory 512 --console   --cloud-init --cloud-init-hostname Fabulous   --cloud-init-userdata cloud-init-user-data.yaml   -i fedora41 --disk Fabulous.qcow2 --disk-size 10g
 
-# Install from a CDROM install URL, attach console and vnc-proxy
+# Installer depuis une URL d’ISO CDROM, attacher la console et lancer le proxy VNC
 freeboxvm install -n Fedora-test --os fedora   --location https://download.fedoraproject.org/pub/fedora/linux/releases/41/Everything/aarch64/iso/Fedora-Everything-netinst-aarch64-41-1.4.iso   --disk "/Disque 1/VMs/test.qcow2" --disk-size 20g   --vcpus 2 --memory 2048 --console --vnc-proxy --enable-screen
 ```
 
+---
 
-### Power on a VM
+### Allumer une VM
 ```bash
 freeboxvm poweron <id|name> [--console|-c] [--vnc-proxy|-v]
                    [--listen|-l ADDR] [--port|-p N]
 ```
-- Boots the VM, then (optionally) attaches the console and/or starts the
-  VNC proxy.
-- `--console, -c`     : attach interactive console (detach Ctrl-A D)
-- `--vnc-proxy, -v`   : expose VNC over a local TCP port
-- `--listen, -l ADDR` : bind address for VNC proxy (default 127.0.0.1)
-- `--port, -p N`      : TCP port for VNC proxy (default 5901)
 
-Examples:
+- Démarre la VM puis (optionnellement) attache la console et/ou lance le proxy VNC.
+- `--console, -c`     : attacher une console interactive (détacher avec Ctrl-A D)
+- `--vnc-proxy, -v`   : exposer le VNC sur un port TCP local
+- `--listen, -l ADDR` : adresse d’écoute pour le proxy VNC (par défaut 127.0.0.1)
+- `--port, -p N`      : port TCP du proxy VNC (par défaut 5901)
+
+Exemples :
 ```bash
-# Power on and attach console
+# Allume la VM et attache la console
 freeboxvm poweron 12 --console
 
-# Power on and start VNC proxy on 0.0.0.0:5902
+# Allume la VM et démarre le proxy VNC sur 0.0.0.0:5902
 freeboxvm poweron 12 --vnc-proxy -l 0.0.0.0 -p 5902
 
-# Power on, attach console and run VNC proxy together
+# Allume la VM et démarre la console et le proxy VNC
 freeboxvm poweron Debian-11 -c -v
 ```
 
 ---
 
-### Power off a VM
+### Éteindre une VM
 ```bash
 freeboxvm poweroff [-f|--force] <id|name>
 ```
 
-- Requests ACPI shutdown of the specified VM.
-- With `-f`/`--force`, sends a hard stop instead.
+- Demande l’arrêt ACPI de la VM spécifiée.
+- Avec -f/--force, envoie à la place un arrêt forcé (hard stop).
 
-Examples:
+Exemples :
 ```bash
 freeboxvm poweroff 0
 freeboxvm poweroff --force Debian-11
@@ -303,12 +288,12 @@ freeboxvm poweroff --force Debian-11
 
 ---
 
-### Reset a VM
+### Réinitialiser une VM
 ```bash
 freeboxvm reset <id|name>
 ```
 
-Examples:
+Exemples:
 ```bash
 freeboxvm reset 0
 freeboxvm reset Debian-11
@@ -316,109 +301,105 @@ freeboxvm reset Debian-11
 
 ---
 
-### Delete a VM
+### Supprimer une VM
 ```bash
-freeboxvm delete <id|name>
-- `--disk, -d`     : Also delete disks and efivars
-- `--force, -f`    : Delete a running VM
+freeboxvm delete <id|name> [--disk|-d] [--force|-f]
+- `--disk, -d`     : Supprimer également les disques et efivars
+- `--force, -f`    : Supprimer une VM en cours d’exécution
 ```
-Remove the specified virtual machine by its numeric **id** or **name**.
-Consider powering off the VM first if deletion fails.
+
+Supprime la machine virtuelle spécifiée par son id numérique ou son nom.
+Si la suppression échoue, pensez à éteindre la VM au préalable.
 
 ---
 
-### Display Freebox system info
+### Infos système Freebox
 ```bash
 freeboxvm system
 ```
 
-- Shows overall Freebox resources:
-  - Total and used memory
-  - Total and used CPUs
-  - USB allocation status
-  - List of available USB ports
+Affiche les ressources globales de la Freebox :
+- Mémoire totale et utilisée
+- Processeurs (CPUs) totaux et utilisés
+- État d’allocation des ports USB
+- Liste des ports USB disponibles
 
 ---
 
-### List installable distributions
+### Lister distributions installables
 ```bash
 freeboxvm os-list [options]
 ```
 
-Lists installable operating system images for VMs.
+Liste les images de systèmes d’exploitation installables pour les VMs.
 
 Options:
-- `-e, --extra`: Query external sources via **libosinfo** for cloud-init images
-  (aarch64, qcow2/raw).
-- `-i, --iso`  : List installable ISOs instead of cloud images.
-- `-l, --long` : Show detailed info (OS, distro, URL, checksum, live flag).
-- `-c, --check`: Validate image and checksum URLs.
-- `-o, --os`   : Filter results by OS name (e.g. `fedora`, `ubuntu`).
+- `-e, --extra`: Interroger des sources externes via libosinfo pour des images cloud-init (aarch64, qcow2/raw).
+- `-i, --iso`  : Lister les ISOs installables au lieu des images cloud.
+- `-l, --long` : Afficher les informations détaillées (OS, distribution, URL, somme de contrôle, indicateur live).
+- `-c, --check`: Valider les URLs des images et des sommes de contrôle.
+- `-o, --os`   : Filtrer les résultats par nom d’OS (ex. fedora, ubuntu).
 
-Examples:
+Exemples:
 ```bash
-# List all available distributions
+# Lister toutes les distributions disponibles
 freeboxvm os-list
 
-# Show detailed info
+# Afficher les informations détaillées
 freeboxvm os-list --long
 
-# Validate URLs
+# Valider les URLs
 freeboxvm os-list --check --long
 
-# List installable ISOs
+# Lister les ISOs installables
 freeboxvm os-list --iso
 
-# Filter by OS (e.g. only Fedora)
+# Filtrer par OS (ex. uniquement Fedora)
 freeboxvm os-list --os fedora
 ```
 
 ---
-
-### Download an image
+### Télécharger une image
 ```bash
 freeboxvm download [options] [short-id]
 ```
 
-Download a VM installation image (disk or ISO) using the Freebox Download Manager.
+Télécharge une image d’installation de VM (disque ou ISO) en utilisant le gestionnaire de téléchargements de la Freebox.
 
-Options:
-- `-i, --iso`        : Select an install ISO rather than a cloud/disk image.
-- `-u, --url URL`    : Provide a direct URL instead of using a `short-id`.
-- `-a, --hash HASH`  : Provide checksum URL when using `--url`.
-- `-f, --filename F` : Filename to store the file.
-- `-d, --directory D`: Freebox directory to store the file (base64 encoded automatically).
-- `-b, --background` : Run download in background (progress not shown; check in Freebox "Téléchargements").
+Options :
+- `-i, --iso`        : Sélectionner une ISO d’installation plutôt qu’une image cloud/disque.
+- `-u, --url URL`    : Fournir une URL directe au lieu d’un short-id.
+- `-a, --hash HASH`  : Fournir l’URL de la somme de contrôle lors de l’utilisation de --url.
+- `-f, --filename F` : Nom de fichier sous lequel enregistrer.
+- `-d, --directory D`: Répertoire Freebox où stocker le fichier (encodé automatiquement en base64).
+- `-b, --background` : Lancer le téléchargement en arrière-plan (progression non affichée ; vérifier dans la section "Téléchargements" de la Freebox).i
 
 Examples:
 ```bash
-# Download a Fedora cloud-init image by short-id
-freeboxvm download fedora
+# Télécharger une image Fedora cloud-init via short-id
+freeboxvm download fedora40
 
-# Download an Ubuntu ISO instead of a cloud image
-freeboxvm download --iso ubuntu
+# Télécharger une ISO Ubuntu au lieu d’une image cloud
+freeboxvm download --iso ubuntu24.04
 
-# Provide a custom URL and checksum
+# Fournir une URL personnalisée et sa somme de contrôle
 freeboxvm download --url https://cloud-images.ubuntu.com/.../disk.qcow2 \
                    --hash https://cloud-images.ubuntu.com/.../SHA256SUMS
 
-# Download in background mode
+# Télécharger en mode arrière-plan
 freeboxvm download --background fedora
 ```
-
 ---
 
-## License
+## Licence
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+Ce programme est un logiciel libre : vous pouvez le redistribuer et/ou le modifier
+selon les termes de la Licence Publique Générale GNU publiée par la Free Software Foundation,
+soit la version 3 de la licence, soit (à votre choix) toute version ultérieure.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
+Ce programme est distribué sans AUCUNE GARANTIE, ni explicite ni implicite,
+y compris sans garantie de COMMERCIALISATION ou d’ADÉQUATION À UN OBJECTIF PARTICULIER.
+Voir la Licence Publique Générale GNU pour plus de détails.
 
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
+Vous devriez avoir reçu une copie de la Licence Publique Générale GNU
+avec ce programme. Sinon, consultez <https://www.gnu.org/licenses/>.
