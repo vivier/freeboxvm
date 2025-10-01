@@ -15,6 +15,14 @@ via the Freebox OS API v8.
 Install with:
 
 ```bash
+pip install .
+```
+
+To install dependencies without packaging metadata (for development or
+legacy environments), use:
+
+
+```bash
 pip install -r requirements.txt
 ```
 

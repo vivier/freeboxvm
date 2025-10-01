@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "freeboxvm"
+version = "0.1.0"
+description = "Command-line tool to manage Freebox virtual machines"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "GPL-3.0-or-later"}
+authors = [{ name = "Laurent Vivier" }, { email = "laurent@vivier.eu" }]
+dependencies = [ "requests", "websockets>=12", "PyGObject", "tqdm", "humanize" ]
+
+[project.urls]
+Homepage = "https://github.com/vivier/freeboxvm"
+
+[project.scripts]
+freeboxvm = "freeboxvm:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["freeboxvm"]
