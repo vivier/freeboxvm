@@ -647,6 +647,9 @@ def install(session_token, args):
     if args.memory:
         vm['memory'] = args.memory
 
+    if args.usb_ports:
+        vm['bind_usb_ports'] = args.usb_ports
+
     hash = None
     location = None
     if args.install:
@@ -749,9 +752,10 @@ def install(session_token, args):
 
     vm['enable_screen'] = args.enable_screen;
 
-    vm['bind_usb_ports'] = [ ]
-
     res = api_request("post", "/vm/", session_token, json = vm )
+    if not res:
+        return
+
     vm_id = res['id']
     vm_name = res['name']
 
@@ -1210,6 +1214,12 @@ def parse_args():
     sp_install.add_argument("--enable-screen", action="store_true",
                             help="Enable screen")
     sp_install.add_argument("--os", help="OS name")
+
+    def comma_separated_list(ports):
+        return [ x for x in ports.split(",") ]
+
+    sp_install.add_argument("--usb-ports", type=comma_separated_list,
+                            help="USB ports to bind to the VM (comma separated)")
 
     # vnx-proxy
     sp_vnc = sub.add_parser("vnc-proxy",

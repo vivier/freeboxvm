@@ -233,6 +233,7 @@ Options:
 - `-v, --vnc-proxy`              : start VNC proxy after boot (requires `--enable-screen`)
 - `-l, --listen ADDR`            : bind address for VNC proxy (default `127.0.0.1`)
 - `-p, --port N`                 : TCP port for VNC proxy (default `5901`)
+- `--usb-ports LIST`             : bind USB ports to the VM (comma-separated)
 
 Notes:
 - When `--install` or `--location` is provided, the image is downloaded

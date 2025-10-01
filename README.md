@@ -228,6 +228,7 @@ Options :
 - `--vnc-proxy`      : démarrer proxy VNC après boot.
 - `--listen`         : adresse d’écoute VNC (par défaut 127.0.0.1).
 - `--port`           : port TCP VNC (par défaut 5901).
+- `--usb-ports LISTE`: lier des ports USB à la VM (liste séparée par des virgules)
 
 Notes :
 - Lorsque `--install` ou `--location` est utilisé, l’image est téléchargée via le gestionnaire de téléchargements de la Freebox dans le répertoire par défaut `/Disque 1/VMs/`, avec suivi de progression, vérification de la somme de contrôle et nettoyage en cas d’erreur.
