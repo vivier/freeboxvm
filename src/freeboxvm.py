@@ -15,10 +15,10 @@ from tqdm import tqdm
 import signal
 from websockets.exceptions import ConnectionClosed
 import humanize
+from freeboxvm_version import __version__
 
 APP_ID		= "freeboxvm"
 APP_NAME	= "Freebox VM manager"
-APP_VERSION	= "0.0.1"
 DEVICE_NAME	= platform.node()
 
 API_URL		= f"http://mafreebox.freebox.fr/api/v8"
@@ -122,7 +122,7 @@ def freebox_connect():
     if not app_token or not track_id:
         auth_data = api_request("post", "/login/authorize/", json={
             "app_id": APP_ID, "app_name": APP_NAME,
-            "app_version": APP_VERSION, "device_name": DEVICE_NAME
+            "app_version": __version__, "device_name": DEVICE_NAME
         })
         if not auth_data: return None
         track_id, app_token = auth_data['track_id'], auth_data['app_token']
@@ -1124,7 +1124,7 @@ def parse_args():
                                 description="Freebox VM manager")
 
     p.add_argument("--version", action="version",
-                   version=f"%(prog)s {APP_VERSION}")
+                   version=f"%(prog)s {__version__}")
 
     sub = p.add_subparsers(dest="cmd", required=True)
 
