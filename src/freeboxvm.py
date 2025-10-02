@@ -139,15 +139,15 @@ def freebox_connect():
                 print("En attente d'autorisation...")
                 time.sleep(5)
             else:
-                print(f"Echec d'autorisation avec le status: {status}")
+                print(f"Échec d'autorisation avec le statut : {status}")
                 return None
         else:
-            print("Epuisement du délai d'attente d'autorisation après 2 minutes.")
+            print("Épuisement du délai d'attente d'autorisation après 2 minutes.")
             return None
 
     challenge_data = api_request("get", f"/login/authorize/{track_id}")
     if not challenge_data or not isinstance(challenge_data, dict):
-        print("Echec pour gagner le challenge, le token doit être invalide.")
+        print("Échec pour obtenir le challenge, le token doit être invalide.")
         return None
     challenge = challenge_data['challenge']
     password = hmac.new(app_token.encode(), challenge.encode(), hashlib.sha1).hexdigest()
@@ -232,10 +232,10 @@ async def console_link(session_token, vm_id):
 
 def system_info(session_token):
     info = api_request("get", "/vm/info/", session_token)
-    print(f"Mémoire Totale: {info['total_memory']}\tMémoire Utilisée: {info['used_memory']}\t({info['used_memory'] * 100 / info['total_memory']} %)")
-    print(f"Nombre de CPUs: {info['total_cpus']}\tCPUs Utilisés: {info['used_cpus']}\t({info['used_cpus'] * 100 / info['total_cpus']} %)")
-    print(f"USB externe alloué: {'Oui' if info['usb_used'] else 'Non'}")
-    print("Liste des ports USB disponibles:")
+    print(f"Mémoire totale : {info['total_memory']}\tMémoire utilisée : {info['used_memory']}\t({info['used_memory'] * 100 / info['total_memory']} %)")
+    print(f"Nombre de CPU : {info['total_cpus']}\tCPU utilisés : {info['used_cpus']}\t({info['used_cpus'] * 100 / info['total_cpus']} %)")
+    print(f"USB externe alloué : {'Oui' if info['usb_used'] else 'Non'}")
+    print("Liste des ports USB disponibles :")
     for usb in info['usb_ports']:
         print(f"   {usb}")
 
@@ -251,25 +251,25 @@ def display_info(vm, args):
 
     if args.usb_ports:
         if vm.get('bind_usb_ports'):
-            print(f"\tUSB ports: {', '.join(port for port in vm.get('bind_usb_ports'))}")
+            print(f"\tPorts USB : {', '.join(port for port in vm.get('bind_usb_ports'))}")
         else:
-            print("\tNo USB ports")
+            print("\tAucun port USB")
 
     if args.disks:
         disc_path = vm.get('disk_path')
-        print(f"\tDisk image: {base64.b64decode(vm.get('disk_path')).decode('utf-8')} ({vm.get('disk_type')})")
+        print(f"\tImage disque : {base64.b64decode(vm.get('disk_path')).decode('utf-8')} ({vm.get('disk_type')})")
         if vm.get('cd_path'):
-            print(f"\tCD image: {base64.b64decode(vm.get('cd_path')).decode('utf-8')}")
+            print(f"\tImage CD : {base64.b64decode(vm.get('cd_path')).decode('utf-8')}")
         else:
-            print("\tNo CDROM device image")
+            print("\tAucune image de périphérique CDROM")
 
     if args.cloud_init:
         if vm.get('enable_cloudinit'):
-            print(f"\tCloud-init hostname: {vm.get('cloudinit_hostname')}")
-            print("\tCloud-init user-data:")
+            print(f"\tCloud-init hostname : {vm.get('cloudinit_hostname')}")
+            print("\tCloud-init user-data :")
             print(vm.get('cloudinit_userdata'))
         else:
-            print("\tCloud-init is disabled")
+            print("\tCloud-init est désactivé")
 
 def human_size(hsize):
     # size will be number of kilibytes
@@ -292,9 +292,9 @@ def list(session_token, args):
         return
 
     if not args.long:
-        print("ID\tSTATUS\tNAME")
+        print("ID\tSTATUT\tNOM")
     else:
-        print("ID\tSTATUS\tNAME\tOS\tMAC             \tVCPUs\tMEMORY\tDISPLAY")
+        print("ID\tSTATUT\tNOM\tOS\tMAC             \tvCPU\tMÉMOIRE\tAFFICHAGE")
 
     for vm in vm_list:
         display_info(vm, args)
@@ -496,7 +496,7 @@ def list_distro(session_token, args):
         if args.long:
             print(f"\t{distro_os}")
             print(f"\t{distro_url}")
-            print(f"\t{distro_hash if distro_hash else 'No hash/checksum URL'}")
+            print(f"\t{distro_hash if distro_hash else 'Aucune URL de hash/somme de contrôle'}")
 
 def select_vm(session_token, selector):
     vm_list = get_vm_list(session_token)
@@ -516,7 +516,7 @@ def select_vm(session_token, selector):
         return matches[0]
 
     if len(matches) > 1:
-        print("Multiple matches:", file=sys.stderr)
+        print("Plusieurs correspondances :", file=sys.stderr)
         for vm in matches:
             print(f"  {vm['id']}: {vm['name']} {vm.get('status')}", file=sys.stderr)
         return None
@@ -526,13 +526,13 @@ def select_vm(session_token, selector):
 def show(session_token, args):
     vm = select_vm(session_token, args.vm)
     if not vm:
-        print("VM non trouvé. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
+        print("VM non trouvée. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
         sys.exit(1)
 
     if not args.long:
-        print("ID\tSTATUS\tNAME")
+        print("ID\tSTATUT\tNOM")
     else:
-        print("ID\tSTATUS\tNAME\tOS\tMAC             \tVCPUs\tMEMORY\tDISPLAY")
+        print("ID\tSTATUT\tNOM\tOS\tMAC             \tvCPU\tMÉMOIRE\tAFFICHAGE")
 
     display_info(vm, args)
 
@@ -564,11 +564,11 @@ def delete(session_token, args):
 def get_file(session_token, request, background):
     resp = api_request("post", "/downloads/add", session_token, data=request)
     if not resp:
-       print("Echec")
+       print("Échec")
        return
 
     if background:
-        print("Téléchargement démarré sur la Freebox, consultez l'utilitaire 'Téléchargements'")
+        print("Téléchargement démarré sur la Freebox, consultez l'utilitaire « Téléchargements »")
         return None
 
     task_id = resp['id']
@@ -596,7 +596,7 @@ def get_file(session_token, request, background):
         t.close()
         task = api_request("get", f"/downloads/{task_id}", session_token)
         if task['status'] == 'checking':
-            print("Checking SHA")
+            print("Vérification du SHA")
         while True:
             task = api_request("get", f"/downloads/{task_id}", session_token)
             if task['status'] != 'checking':
@@ -664,7 +664,7 @@ def install(session_token, args):
             distro = next((item for item in distro_list if item['short-id'] == args.install), None)
 
         if not distro:
-            print(f"Distribution inconnue: {args.install}")
+            print(f"Distribution inconnue : {args.install}")
             return
 
         location = distro['url']
@@ -675,9 +675,9 @@ def install(session_token, args):
         location = args.location
 
     if location:
-        print(f"location: {location}")
+        print(f"URL : {location}")
         if hash:
-            print(f"hash: {hash}")
+            print(f"Hash : {hash}")
         if args.cdrom:
             print("--location et --cdrom sont mutuellement exclusifs")
             return
@@ -703,7 +703,7 @@ def install(session_token, args):
 
     if os_name:
         vm['os'] = os_name
-        print(f"OS: {os_name}")
+        print(f"OS : {os_name}")
 
     if cdrom_path:
         cd_path_b64 = base64.b64encode(cdrom_path.encode("utf-8")).decode("ascii")
@@ -715,7 +715,7 @@ def install(session_token, args):
         info = api_request("post", f"/vm/disk/info", session_token, json={ 'disk_path': disk_path_b64 })
         if not info:
             if not args.disk_size:
-                print(f"Le disque {disk_path} n'existe pas, et la taille n'a pas été spécifiée pour se création")
+                print(f"Le disque {disk_path} n'existe pas, et la taille n'a pas été spécifiée pour sa création")
                 return
             if disk_path.lower().endswith(".qcow2"):
                 disk_type = "qcow2"
@@ -790,7 +790,7 @@ def console(session_token, args):
 
     vm = select_vm(session_token, args.vm)
     if not vm:
-        print("VM non trouvé. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
+        print("VM non trouvée. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
         sys.exit(1)
 
     vm_id, vm_name = vm["id"], vm["name"]
@@ -885,24 +885,24 @@ async def run_vnc_proxy(session_token, vm_id, host="127.0.0.1", port=5901):
 
     async def handler(reader, writer):
         peer = writer.get_extra_info("peername")
-        print(f"Client connected from {peer}")
+        print(f"Client connecté depuis {peer}")
         try:
             await vnc_proxy_once(session_token, vm_id, reader, writer)
         except Exception as e:
-            print(f"Tunnel error: {e}")
+            print(f"Erreur de tunnel : {e}")
             try:
                 writer.close()
                 await writer.wait_closed()
             except Exception:
                 pass
         finally:
-            print(f"Client disconnected from {peer}")
+            print(f"Client déconnecté de {peer}")
 
     server = await asyncio.start_server(handler, host, port)
     sockets = ", ".join(str(s.getsockname()) for s in server.sockets or [])
     async with server:
         await stop
-    print("Shutting down VNC proxy...")
+    print("Arrêt du proxy VNC...")
 
 async def run_vnc_and_console(session_token, vm_id, host, port):
     """
@@ -932,7 +932,7 @@ async def run_vnc_and_console(session_token, vm_id, host, port):
 def vnc_proxy(session_token, args):
     vm = select_vm(session_token, args.vm)
     if not vm:
-        print("VM non trouvé. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
+        print("VM non trouvée. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
         sys.exit(1)
     vm_id, vm_name = vm["id"], vm["name"]
     print(f"Proxy VNC pour '{vm_name}' (VM #{vm_id}) sur {args.listen}:{args.port}")
@@ -946,7 +946,7 @@ def poweron(session_token, args):
 
     vm = select_vm(session_token, args.vm)
     if not vm:
-        print("VM non trouvé. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
+        print("VM non trouvée. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
         sys.exit(1)
 
     vm_id, vm_name = vm["id"], vm["name"]
@@ -970,7 +970,7 @@ def poweron(session_token, args):
 def poweroff(session_token, args):
     vm = select_vm(session_token, args.vm)
     if not vm:
-        print("VM non trouvé. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
+        print("VM non trouvée. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
         sys.exit(1)
 
     vm_id, vm_name = vm["id"], vm["name"]
@@ -987,12 +987,12 @@ def reset(session_token, args):
 
     vm = select_vm(session_token, args.vm)
     if not vm:
-        print("VM non trouvé. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
+        print("VM non trouvée. Utilisez 'freeboxvm list' pour voir la liste.", file=sys.stderr)
         sys.exit(1)
 
     vm_id, vm_name = vm["id"], vm["name"]
 
-    print(f"Redémmarage de '{vm_name}' (VM #{vm_id})",
+    print(f"Redémarrage de '{vm_name}' (VM #{vm_id})",
           file=sys.stderr)
 
     api_request("post", f"/vm/{vm_id}/restart", session_token)
@@ -1120,12 +1120,12 @@ def disk(session_token, args):
         info = api_request("post", f"/vm/disk/info", session_token, json={ 'disk_path': disk_path_b64 })
         if not info:
             return
-        print(f"Fichier: {args.path}")
-        print(f"Taille virtuelle: {humanize.naturalsize(info['virtual_size'], binary=True)} Espace occupé: {humanize.naturalsize(info['actual_size'], binary=True)} type: {info['type']}")
+        print(f"Fichier : {args.path}")
+        print(f"Taille virtuelle : {humanize.naturalsize(info['virtual_size'], binary=True)} Espace occupé : {humanize.naturalsize(info['actual_size'], binary=True)} type : {info['type']}")
 
 def parse_args():
     p = argparse.ArgumentParser(prog="freeboxvm",
-                                description="Freebox VM manager")
+                                description="Gestionnaire de VM Freebox")
 
     p.add_argument("--version", action="version",
                    version=f"%(prog)s {__version__}")
@@ -1134,173 +1134,173 @@ def parse_args():
 
     # system
     sp_system = sub.add_parser("system",
-                               help="Display Freebox system info")
+                               help="Afficher les informations système de la Freebox")
 
     # os-list
     sp_list_os = sub.add_parser("os-list",
-                                help="List installable distributions")
+                                help="Lister les distributions installables")
     sp_list_os.add_argument("--long", "-l", action='store_true',
-                            help="Display more information")
+                            help="Afficher plus d'informations")
     sp_list_os.add_argument("--extra", "-e", action='store_true',
-                    help="List available distributions from external sources")
+                    help="Lister les distributions disponibles depuis des sources externes")
     sp_list_os.add_argument("--check", "-c", action='store_true',
-                            help="Check the URL is valid")
+                            help="Vérifier la validité de l'URL")
     sp_list_os.add_argument("--iso", "-i", action='store_true',
-                            help="List available install ISO")
+                            help="Lister les images ISO d'installation disponibles")
     sp_list_os.add_argument("--os", "-o", type=str,
-                        help="Filter list using OS name (fedora, ubuntu, ...)")
+                        help="Filtrer la liste par nom d'OS (fedora, ubuntu, ...)")
 
     # list
-    sp_list = sub.add_parser("list", help="List VMs")
+    sp_list = sub.add_parser("list", help="Lister les VM")
     sp_list.add_argument("--long", "-l", action='store_true',
-                         help="Display more information")
+                         help="Afficher plus d'informations")
     sp_list.add_argument("--usb-ports", "-u", action='store_true',
-                         help="List bound USB ports")
+                         help="Lister les ports USB associés")
     sp_list.add_argument("--disks", "-d", action='store_true',
-                         help="List disk images")
+                         help="Lister les images disque")
     sp_list.add_argument("--cloud-init", "-c", action='store_true',
-                         help="Display cloud-init information")
+                         help="Afficher les informations cloud-init")
 
     # show
-    sp_show = sub.add_parser("show", help="Show information of a VM")
+    sp_show = sub.add_parser("show", help="Afficher les informations d'une VM")
     sp_show.add_argument("--long", "-l", action='store_true',
-                         help="Display more information")
+                         help="Afficher plus d'informations")
     sp_show.add_argument("--usb-ports", "-u", action='store_true',
-                         help="List bound USB ports")
+                         help="Lister les ports USB associés")
     sp_show.add_argument("--disks", "-d", action='store_true',
-                         help="List disk images")
+                         help="Lister les images disque")
     sp_show.add_argument("--cloud-init", "-c", action='store_true',
-                         help="Display cloud-init information")
-    sp_show.add_argument("vm", help="VM id or name")
+                         help="Afficher les informations cloud-init")
+    sp_show.add_argument("vm", help="ID ou nom de la VM")
 
     # delete
-    sp_delete = sub.add_parser("delete", help="Delete a VM")
+    sp_delete = sub.add_parser("delete", help="Supprimer une VM")
     sp_delete.add_argument("--disk", "-d", action='store_true',
-                           help="Delete disk image")
+                           help="Supprimer l'image disque")
     sp_delete.add_argument("--force", "-f", action='store_true',
-                           help="Delete even if the VM is running")
-    sp_delete.add_argument("vm", help="VM id or name")
+                           help="Supprimer même si la VM est en cours d'exécution")
+    sp_delete.add_argument("vm", help="ID ou nom de la VM")
 
     # console
-    sp_console = sub.add_parser("console", help="Open VM console")
-    sp_console.add_argument("vm", help="VM id or name")
+    sp_console = sub.add_parser("console", help="Ouvrir la console de la VM")
+    sp_console.add_argument("vm", help="ID ou nom de la VM")
 
     # install
-    sp_install = sub.add_parser("install", help="Install a new VM")
+    sp_install = sub.add_parser("install", help="Installer une nouvelle VM")
     sp_install.add_argument("--console", "-c", action="store_true",
-                            help="Attach the VM console on boot")
+                            help="Attacher la console de la VM au démarrage")
     sp_install.add_argument("--vnc-proxy", "-v", action="store_true",
-                            help="Expose VM VNC over a local TCP port on boot")
+                            help="Exposer le VNC de la VM sur un port TCP local au démarrage")
     sp_install.add_argument("--listen", "-l", default="127.0.0.1",
-                            help="Bind address (default 127.0.0.1)")
+                            help="Adresse d'écoute (défaut 127.0.0.1)")
     sp_install.add_argument("--port", "-p", type=int, default=5901,
-                            help="Local TCP port (default 5901)")
+                            help="Port TCP local (défaut 5901)")
     sp_install.add_argument("--install", "-i",
-                            help="Distro short-id to install (see os-list)")
-    sp_install.add_argument("--name", "-n", help="Name of the VM")
-    sp_install.add_argument("--memory", help="Memory size of the VM")
-    sp_install.add_argument("--vcpus", help="Number of vCPUs")
-    sp_install.add_argument("--cdrom", help="CDROM image path")
-    sp_install.add_argument("--location", help="Boot CD URL")
-    sp_install.add_argument("--disk", help="Disk image")
-    sp_install.add_argument("--disk-size", help="Set disk image")
+                            help="Identifiant court de la distribution à installer (voir os-list)")
+    sp_install.add_argument("--name", "-n", help="Nom de la VM")
+    sp_install.add_argument("--memory", help="Taille mémoire de la VM")
+    sp_install.add_argument("--vcpus", help="Nombre de vCPU")
+    sp_install.add_argument("--cdrom", help="Chemin de l'image CDROM")
+    sp_install.add_argument("--location", help="URL du CD de démarrage")
+    sp_install.add_argument("--disk", help="Image disque")
+    sp_install.add_argument("--disk-size", help="Taille de l'image disque")
     sp_install.add_argument("--cloud-init", action="store_true",
-                            help="Enable cloud-init")
+                            help="Activer cloud-init")
     sp_install.add_argument("--cloud-init-hostname",
-                            help="Set cloud-init hostname")
+                            help="Définir le nom d'hôte cloud-init")
     sp_install.add_argument("--cloud-init-userdata",
                             type=argparse.FileType("r"),
-                            help="Load cloud-init user-data from this file")
+                            help="Charger le user-data cloud-init depuis ce fichier")
     sp_install.add_argument("--enable-screen", action="store_true",
-                            help="Enable screen")
-    sp_install.add_argument("--os", help="OS name")
+                            help="Activer l'écran")
+    sp_install.add_argument("--os", help="Nom de l'OS")
 
     def comma_separated_list(ports):
         return [ x for x in ports.split(",") ]
 
     sp_install.add_argument("--usb-ports", type=comma_separated_list,
-                            help="USB ports to bind to the VM (comma separated)")
+                            help="Ports USB à associer à la VM (séparés par des virgules)")
 
     # vnx-proxy
     sp_vnc = sub.add_parser("vnc-proxy",
-                            help="Expose VM VNC over a local TCP port")
-    sp_vnc.add_argument("vm", help="VM id or name")
+                            help="Exposer le VNC de la VM sur un port TCP local")
+    sp_vnc.add_argument("vm", help="ID ou nom de la VM")
     sp_vnc.add_argument("--listen", "-l", default="127.0.0.1",
-                        help="Bind address (default 127.0.0.1)")
+                        help="Adresse d'écoute (défaut 127.0.0.1)")
     sp_vnc.add_argument("--port", "-p", type=int, default=5901,
-                        help="Local TCP port (default 5901)")
+                        help="Port TCP local (défaut 5901)")
     sp_vnc.add_argument("--console", action="store_true",
-                        help="Also attach the VM console")
+                        help="Attacher également la console de la VM")
 
     # poweron
-    sp_poweron = sub.add_parser("poweron", help="Power on a VM")
-    sp_poweron.add_argument("vm", help="VM id or name")
+    sp_poweron = sub.add_parser("poweron", help="Allumer une VM")
+    sp_poweron.add_argument("vm", help="ID ou nom de la VM")
     sp_poweron.add_argument("--console", "-c", action="store_true",
-                            help="Also attach the VM console")
+                            help="Attacher également la console de la VM")
     sp_poweron.add_argument("--vnc-proxy", "-v", action="store_true",
-                            help="Also expose VM VNC over a local TCP port")
+                            help="Exposer également le VNC de la VM sur un port TCP local")
     sp_poweron.add_argument("--listen", "-l", default="127.0.0.1",
-                            help="Bind address (default 127.0.0.1)")
+                            help="Adresse d'écoute (défaut 127.0.0.1)")
     sp_poweron.add_argument("--port", "-p", type=int, default=5901,
-                            help="Local TCP port (default 5901)")
+                            help="Port TCP local (défaut 5901)")
 
     # poweroff
     sp_poweroff = sub.add_parser("poweroff",
-                                 help="Power off a VM")
+                                 help="Éteindre une VM")
     sp_poweroff.add_argument("--force", "-f", action='store_true',
-                            help="Force power off a VM")
-    sp_poweroff.add_argument("vm", help="VM id or name")
+                            help="Forcer l'arrêt de la VM")
+    sp_poweroff.add_argument("vm", help="ID ou nom de la VM")
 
     # reset
-    sp_reset = sub.add_parser("reset", help="Reset on a VM")
-    sp_reset.add_argument("vm", help="VM id or name")
+    sp_reset = sub.add_parser("reset", help="Redémarrer une VM")
+    sp_reset.add_argument("vm", help="ID ou nom de la VM")
 
     # download
-    sp_download = sub.add_parser("download", help="Download a disk/cdrom image")
+    sp_download = sub.add_parser("download", help="Télécharger une image disque/CDROM")
     sp_download.add_argument("--iso", "-i", action='store_true',
-                             help="select an ISO rather than a disk image")
+                             help="Sélectionner une ISO plutôt qu'une image disque")
     sp_download.add_argument("short_id", metavar="short-id", nargs="?",
-                             type=str, help="distro short-id")
+                             type=str, help="Identifiant court de la distribution")
     sp_download.add_argument("--background", "-b", action='store_true',
-                             help="Download in background")
+                             help="Télécharger en arrière-plan")
     sp_download.add_argument("--url", "-u", type=str,
-                             help="Don't use short-id, provide the URL")
+                             help="Ne pas utiliser l'identifiant court ; fournir l'URL")
     sp_download.add_argument("--hash", "-a", type=str,
-                             help="Don't use short-id, provide the hash")
+                             help="Ne pas utiliser l'identifiant court ; fournir le hash")
     sp_download.add_argument("--filename", "-f", type=str,
-                             help="Provide filename to store the file")
+                             help="Nom de fichier à utiliser")
     sp_download.add_argument("--directory", "-d", type=str,
-                             help="Freebox directory to store the file")
+                             help="Dossier Freebox où stocker le fichier")
 
     # disk
-    sp_disk = sub.add_parser("disk", help="Manage disk images")
+    sp_disk = sub.add_parser("disk", help="Gérer les images disque")
     sp_disk_action = sp_disk.add_subparsers(dest="action", required=True)
 
     # disk create
     sp_disk_create = sp_disk_action.add_parser("create",
-                                               help="Create a new disk image")
+                                               help="Créer une nouvelle image disque")
     sp_disk_create.add_argument("--type", "-t", type=str, default='qcow2',
-                                help="Disk type")
-    sp_disk_create.add_argument("path", help="Disk image path")
-    sp_disk_create.add_argument("size", help="Disk image size")
+                                help="Type de disque")
+    sp_disk_create.add_argument("path", help="Chemin de l'image disque")
+    sp_disk_create.add_argument("size", help="Taille de l'image disque")
 
     # disk info
     sp_disk_info = sp_disk_action.add_parser("info",
-                                        help="Get information on a disk image")
-    sp_disk_info.add_argument("path", help="Disk image path")
+                                        help="Obtenir des informations sur une image disque")
+    sp_disk_info.add_argument("path", help="Chemin de l'image disque")
 
     # disk resize
     sp_disk_resize = sp_disk_action.add_parser("resize",
-                                               help="Resize a disk image")
+                                               help="Redimensionner une image disque")
     sp_disk_resize.add_argument("--shrink-allow", "-a", action='store_true',
-                    help="Shrinking the disk is allowed. Can be destructive")
-    sp_disk_resize.add_argument("path", help="Disk image path")
-    sp_disk_resize.add_argument("size", help="Disk image new size")
+                    help="Réduction du disque autorisée (peut être destructif)")
+    sp_disk_resize.add_argument("path", help="Chemin de l'image disque")
+    sp_disk_resize.add_argument("size", help="Nouvelle taille de l'image disque")
 
     # disk delete
     sp_disk_delete = sp_disk_action.add_parser("delete",
-                                               help="Delete a disk image")
-    sp_disk_delete.add_argument("path", help="Disk image path")
+                                               help="Supprimer une image disque")
+    sp_disk_delete.add_argument("path", help="Chemin de l'image disque")
 
     return p.parse_args()
 
