@@ -108,12 +108,12 @@ freeboxvm show 12 --disks --cloud-init
 freeboxvm console <id|name>
 ```
 
-- Quitter avec **Ctrl-A D**
-- Envoyer un **Ctrl-A** : **Ctrl-A A**
-- Réinitialiser la VM : **Ctrl-A R**
-- Arrêter (halt) la VM : **Ctrl-A H**
-- Stopper la VM : **Ctrl-A S**
-- Aide Ctrl-A : **Ctrl-A ?**
+- Quitter avec **Ctrl-B D**
+- Envoyer un **Ctrl-B** : **Ctrl-B B**
+- Réinitialiser la VM : **Ctrl-B R**
+- Arrêter (halt) la VM : **Ctrl-B H**
+- Stopper la VM : **Ctrl-B S**
+- Aide Ctrl-B : **Ctrl-B ?**
 
 Exemples :
 ```bash
@@ -254,7 +254,7 @@ freeboxvm poweron <id|name> [--console|-c] [--vnc-proxy|-v]
 ```
 
 - Démarre la VM puis (optionnellement) attache la console et/ou lance le proxy VNC.
-- `--console, -c`     : attacher une console interactive (détacher avec Ctrl-A D)
+- `--console, -c`     : attacher une console interactive (détacher avec Ctrl-B D)
 - `--vnc-proxy, -v`   : exposer le VNC sur un port TCP local
 - `--listen, -l ADDR` : adresse d’écoute pour le proxy VNC (par défaut 127.0.0.1)
 - `--port, -p N`      : port TCP du proxy VNC (par défaut 5901)

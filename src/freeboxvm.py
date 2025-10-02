@@ -173,13 +173,13 @@ async def console_link(session_token, vm_id):
     ) as ws:
         loop = asyncio.get_running_loop()
 
-        CTRL_A = b"\x01"              # Ctrl-A
-        HELP_KEYS = { b"?" } # Ctrl-A ?
-        DETACH_KEYS = { b"d", b"D" } # Ctrl-A D
-        PASSTHRU_KEYS = { b"a", b"A" } # Ctrl-A A
-        HALT_KEYS = { b"h", b"H" } # Ctrl-A H
-        RESET_KEYS = { b"r", b"R" } # Ctrl-A R
-        STOP_KEYS = { b"s", b"S" } # Ctrl-A S
+        CTRL_B = b"\x02"              # Ctrl-B
+        HELP_KEYS = { b"?" } # Ctrl-B ?
+        DETACH_KEYS = { b"d", b"D" } # Ctrl-B D
+        PASSTHRU_KEYS = { b"b", b"B" } # Ctrl-B B
+        HALT_KEYS = { b"h", b"H" } # Ctrl-B H
+        RESET_KEYS = { b"r", b"R" } # Ctrl-B R
+        STOP_KEYS = { b"s", b"S" } # Ctrl-B S
 
         async def rx():
             async for msg in ws:
@@ -202,12 +202,12 @@ async def console_link(session_token, vm_id):
                         return
                     elif data in HELP_KEYS:
                         print("\r")
-                        print("    Ctrl-A ? : Affiche l'aide\r")
-                        print("    Ctrl-A D : Détache la console\r")
-                        print("    Ctrl-A H : Arrête la VM\r")
-                        print("    Ctrl-A S : Force l'arrêt de la VM\r")
-                        print("    Ctrl-A R : Redémarre la VM\r")
-                        print("    Ctrl-A A : Envoie Ctrl-A a la console\r")
+                        print("    Ctrl-B ? : Affiche l'aide\r")
+                        print("    Ctrl-B D : Détache la console\r")
+                        print("    Ctrl-B H : Arrête la VM\r")
+                        print("    Ctrl-B S : Force l'arrêt de la VM\r")
+                        print("    Ctrl-B R : Redémarre la VM\r")
+                        print("    Ctrl-B B : Envoie Ctrl-B a la console\r")
                     elif data in HALT_KEYS:
                         api_request("post", f"/vm/{vm_id}/powerbutton", session_token)
                     elif data in STOP_KEYS:
@@ -215,12 +215,12 @@ async def console_link(session_token, vm_id):
                     elif data in RESET_KEYS:
                         api_request("post", f"/vm/{vm_id}/restart", session_token)
                     elif data in PASSTHRU_KEYS:
-                        await ws.send(CTRL_A)
+                        await ws.send(CTRL_B)
                     else:
-                        await ws.send(CTRL_A + data)
+                        await ws.send(CTRL_B + data)
                     continue
 
-                if data == CTRL_A:
+                if data == CTRL_B:
                     waiting_cmd = True
                 else:
                     await ws.send(data)
@@ -795,7 +795,7 @@ def console(session_token, args):
 
     vm_id, vm_name = vm["id"], vm["name"]
 
-    print(f"Connexion à la console de '{vm_name}' (VM #{vm_id}), Ctrl-A D pour sortir...",
+    print(f"Connexion à la console de '{vm_name}' (VM #{vm_id}), Ctrl-B D pour sortir...",
           file=sys.stderr)
 
     with raw_terminal():
@@ -907,7 +907,7 @@ async def run_vnc_proxy(session_token, vm_id, host="127.0.0.1", port=5901):
 async def run_vnc_and_console(session_token, vm_id, host, port):
     """
     Run the VNC proxy and the interactive console concurrently.
-    The console ends on Ctrl-A D (your existing behavior); we then stop the proxy.
+    The console ends on Ctrl-B D (your existing behavior); we then stop the proxy.
     """
     proxy_task = asyncio.create_task(run_vnc_proxy(session_token, vm_id, host, port))
 
