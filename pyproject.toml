@@ -21,6 +21,10 @@ freeboxvm = "freeboxvm:main"
 [tool.setuptools]
 package-dir = {"" = "src"}
 py-modules = ["freeboxvm", "freeboxvm_version"]
+include-package-data = true
+
+[tool.setuptools.data-files]
+"share/man/man1" = ["man/man1/freeboxvm.1"]
 
 [tool.setuptools.dynamic]
 version = { attr = "freeboxvm_version.__version__" }

@@ -1,0 +1,259 @@
+.TH FREEBOXVM 1 "October 2025" "freeboxvm 0.0.1" "User Commands"
+.SH NAME
+freeboxvm \- manage virtual machines on Freebox OS
+.SH SYNOPSIS
+.B freeboxvm
+[\-\-version]
+.I command
+.RI [ options ] " [args]"
+.PP
+Run
+.B freeboxvm
+with one of the commands below to manage and access VMs hosted on a Freebox gateway.
+.SH DESCRIPTION
+.B freeboxvm
+is a command-line client for the Freebox OS v8 API at
+.UR http://mafreebox.freebox.fr/api/v8
+http://mafreebox.freebox.fr/api/v8
+.UE
+that lets you list, inspect, install, control, and delete virtual machines on the appliance. It can also fetch install media, manage disk images, interact with the serial console, and proxy the built-in VNC display over TCP for standard viewers.
+.SH OPTIONS
+.TP
+.BR --version
+Print the program version and exit.
+.SH COMMANDS
+.SS system
+Display host resource information reported by the Freebox, including memory usage, CPU allocation, USB status, and available USB ports.
+.SS os-list
+List installable operating system images.
+.TP
+.BR -l ,\ --long
+Show detailed information (OS, name, URL, checksum, and live flag).
+.TP
+.BR -e ,\ --extra
+Query additional libosinfo sources for cloud-init-ready images.
+.TP
+.BR -i ,\ --iso
+List installable ISO images instead of cloud images.
+.TP
+.BR -c ,\ --check
+Validate image and checksum URLs.
+.TP
+.BR -o ,\ --os " " \fIOS\fR
+Filter results by OS identifier (for example \fBfedora\fR or \fBubuntu\fR).
+.SS list
+List virtual machines.
+.TP
+.BR -l ,\ --long
+Add OS, MAC, vCPU, memory, and display columns to the default \fIID STATUS NAME\fR output.
+.TP
+.BR -u ,\ --usb-ports
+Show bound USB ports for each VM.
+.TP
+.BR -d ,\ --disks
+Show disk and CD images for each VM.
+.TP
+.BR -c ,\ --cloud-init
+Show cloud-init status, hostname, and user-data.
+.SS show
+Display information about a single VM (accepts ID or name). The options match those of
+.B list
+(\fB--long\fR, \fB--usb-ports\fR, \fB--disks\fR, \fB--cloud-init\fR).
+.SS console
+Attach to a VM console (ID or name). Press \fBCtrl-B D\fR to detach, \fBCtrl-B B\fR to send a literal Ctrl-B, \fBCtrl-B R\fR to reset, \fBCtrl-B H\fR to request a halt, \fBCtrl-B S\fR to force stop, and \fBCtrl-B ?\fR for help.
+.SS vnc-proxy
+Expose the VM screen (VNC-over-WebSocket) on a local TCP port.
+.TP
+.BR -l ,\ --listen " " \fIADDR\fR
+Bind address (default \fB127.0.0.1\fR).
+.TP
+.BR -p ,\ --port " " \fIPORT\fR
+Local TCP port (default \fB5901\fR).
+.TP
+.BR --console
+Launch the console side-by-side with the proxy.
+.SS poweron
+Start a VM and optionally attach the console and/or VNC proxy.
+.TP
+.BR -c ,\ --console
+Attach the console after boot.
+.TP
+.BR -v ,\ --vnc-proxy
+Start a VNC proxy after boot.
+.TP
+.BR -l ,\ --listen " " \fIADDR\fR
+Override the proxy bind address (default \fB127.0.0.1\fR).
+.TP
+.BR -p ,\ --port " " \fIPORT\fR
+Override the proxy TCP port (default \fB5901\fR).
+.SS poweroff
+Request an ACPI shutdown for a VM.
+.TP
+.BR -f ,\ --force
+Force-stop the VM immediately.
+.SS reset
+Reboot a VM.
+.SS delete
+Delete a VM by ID or name.
+.TP
+.BR -d ,\ --disk
+Delete attached disk images and EFI variables as well.
+.TP
+.BR -f ,\ --force
+Remove a running VM.
+.SS install
+Create and boot a new VM from a cloud image or install ISO. When a short-id or URL is provided, the image is downloaded via the Freebox download manager into \fB/Disque 1/VMs/\fR with progress reporting, checksum verification, and cleanup on error. For cloud images the downloaded file becomes the VM disk image; missing disk files are created when \fB--disk-size\fR is provided, and smaller disks are resized upward automatically.
+.TP
+.BR -i ,\ --install " " \fIID\fR
+Distribution short-id (see
+.B os-list
+or
+.B --extra
+for cloud-init images;
+.B --iso
+for ISOs).
+.TP
+.BR -n ,\ --name " " \fINAME\fR
+VM name.
+.TP
+.BR --os " " \fIOS\fR
+Explicit OS name when not inferred.
+.TP
+.BR --vcpus " " \fIN\fR
+Number of virtual CPUs.
+.TP
+.BR --memory " " \fIN\fR
+VM memory size in MiB.
+.TP
+.BR --disk " " \fIPATH\fR
+Disk image path (created if missing when paired with \fB--disk-size\fR).
+.TP
+.BR --disk-size " " \fISIZE\fR
+Disk size; accepts binary suffixes (\fBk\fR, \fBm\fR, \fBg\fR, \fBt\fR) or raw bytes.
+.TP
+.BR --cdrom " " \fIPATH\fR
+Installation ISO on the Freebox filesystem.
+.TP
+.BR --location " " \fIURL\fR
+Boot ISO/image URL (mutually exclusive with \fB--cdrom\fR).
+.TP
+.BR --cloud-init
+Enable cloud-init.
+.TP
+.BR --cloud-init-hostname " " \fINAME\fR
+Set the cloud-init hostname.
+.TP
+.BR --cloud-init-userdata " " \fIFILE\fR
+Read cloud-init user-data from a file.
+.TP
+.BR --enable-screen
+Enable the VM display (required for VNC proxying).
+.TP
+.BR -c ,\ --console
+Attach the console once the VM boots.
+.TP
+.BR -v ,\ --vnc-proxy
+Start a VNC proxy after boot.
+.TP
+.BR -l ,\ --listen " " \fIADDR\fR
+Bind address for the VNC proxy (default \fB127.0.0.1\fR).
+.TP
+.BR -p ,\ --port " " \fIPORT\fR
+TCP port for the VNC proxy (default \fB5901\fR).
+.TP
+.BR --usb-ports " " \fILIST\fR
+Comma-separated USB ports to attach to the VM.
+.SS download
+Download a VM image or ISO using the Freebox download manager.
+.TP
+.BR -i ,\ --iso
+Select an install ISO instead of a cloud image.
+.TP
+.BR -u ,\ --url " " \fIURL\fR
+Download from a custom URL instead of a short-id.
+.TP
+.BR -a ,\ --hash " " \fIURL\fR
+Checksum URL to use with
+.BR --url .
+.TP
+.BR -f ,\ --filename " " \fINAME\fR
+Filename to store the download under.
+.TP
+.BR -d ,\ --directory " " \fIPATH\fR
+Freebox directory to store the file (base64 encoded automatically).
+.TP
+.BR -b ,\ --background
+Queue the download without showing progress (monitor in Freebox downloads UI).
+.SS disk
+Manage VM disk images. Sizes accept binary suffixes (\fBk\fR, \fBm\fR, \fBg\fR, \fBt\fR) or raw byte counts.
+.PP
+Subcommands:
+.TP
+.B disk create
+Create a new disk image.
+.RS
+.TP
+.BR -t ,\ --type " " \fITYPE\fR
+Disk format (default \fBqcow2\fR).
+.TP
+.B path
+Disk image path.
+.TP
+.B size
+Disk size.
+.RE
+.TP
+.B disk resize
+Resize an existing disk image.
+.RS
+.TP
+.BR -a ,\ --shrink-allow
+Permit shrinking (may be destructive).
+.TP
+.B path
+Disk image path.
+.TP
+.B size
+New disk size.
+.RE
+.TP
+.B disk info
+Show details about a disk image.
+.RS
+.TP
+.B path
+Disk image path.
+.RE
+.TP
+.B disk delete
+Delete a disk image.
+.RS
+.TP
+.B path
+Disk image path.
+.RE
+.SH FILES
+.TP
+\fBfreeboxvm_token.json\fR
+Stores the application token and track ID issued by the Freebox authorization flow.
+.SH EXAMPLES
+.TP
+List all VMs with disk and cloud-init details:
+.nf
+freeboxvm list --disks --cloud-init
+.fi
+.TP
+Install a Fedora cloud image with cloud-init and an attached console:
+.nf
+freeboxvm install -n Fedora-cloud --vcpus 1 --memory 512 --console \\
+    --cloud-init --cloud-init-hostname Fabulous \\
+    --cloud-init-userdata cloud-init-user-data.yaml \\
+    -i fedora41 --disk Fabulous.qcow2 --disk-size 10g
+.fi
+.TP
+Expose a VM display on all interfaces via VNC proxy:
+.nf
+freeboxvm vnc-proxy --listen 0.0.0.0 --port 5902 12
+.fi
+.SH SEE ALSO
+Project README (README.en.md or README.md) for extended tutorials and examples.
