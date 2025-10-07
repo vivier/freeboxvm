@@ -570,7 +570,7 @@ def delete(session_token, args):
 
     disk_path_b64 = vm['disk_path']
     api_request("delete", f"/vm/{vm['id']}", session_token)
-    if disk_path_b64:
+    if args.disk and disk_path_b64:
         efivars_path = base64.b64decode(disk_path_b64).decode('utf-8') + '.efivars'
         efivars_path_b64 = base64.b64encode(efivars_path.encode("utf-8")).decode("ascii")
         api_request("post", "/fs/rm/", session_token, json={ 'files': [ efivars_path_b64 ] })
