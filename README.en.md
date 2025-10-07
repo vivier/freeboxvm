@@ -338,6 +338,7 @@ freeboxvm system
   - Total and used CPUs
   - USB allocation status
   - List of available USB ports
+  - Path of VMs directory
 
 ---
 

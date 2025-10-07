@@ -158,6 +158,20 @@ def freebox_connect():
         return None
     return login_data['session_token'] if login_data else None
 
+def search_VMs(session_token, path):
+    path_b64 = base64.b64encode(path.encode("utf-8")).decode("ascii")
+    res = api_request("get", f"/fs/ls/{path_b64}", session_token, data = { 'onlyFolder': True, 'removeHidden': True })
+    for entry in res:
+        if entry['hidden'] or not entry['mimetype'] == 'inode/directory' or entry['name'] == '.' or entry['name'] == '..':
+            continue
+        path = base64.b64decode(entry['path']).decode('utf-8')
+        if entry['name'] == 'VMs':
+            return path
+        res = search_VMs(session_token, path)
+        if res != None:
+            return res
+    return None
+
 async def console_link(session_token, vm_id):
     url = f"wss://mafreebox.freebox.fr/api/v8/vm/{vm_id}/console"
 
@@ -238,6 +252,7 @@ def system_info(session_token):
     print("Liste des ports USB disponibles :")
     for usb in info['usb_ports']:
         print(f"   {usb}")
+    print(f"VMs directory path: {search_VMs(session_token, '/')}")
 
 def get_vm_list(session_token):
     vm_list = api_request("get", "/vm/", session_token)
@@ -621,7 +636,7 @@ def get_file(session_token, request, background):
         return filepath
 
 def install(session_token, args):
-    download_dir = "/Disque 1/VMs/"
+    download_dir = search_VMs(session_token, "/")
     download_dir_b64 = base64.b64encode(download_dir.encode("utf-8")).decode("ascii")
 
     vm = { }

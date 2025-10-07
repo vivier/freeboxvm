@@ -324,6 +324,7 @@ Affiche les ressources globales de la Freebox :
 - Processeurs (CPUs) totaux et utilisés
 - État d’allocation des ports USB
 - Liste des ports USB disponibles
+- Chemin du répertoire VMs
 
 ---
 
