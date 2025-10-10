@@ -21,7 +21,7 @@ APP_ID		= "freeboxvm"
 APP_NAME	= "Freebox VM manager"
 DEVICE_NAME	= platform.node()
 
-API_URL		= f"http://mafreebox.freebox.fr/api/v8"
+API_URL		= "http://mafreebox.freebox.fr/api/v8"
 
 TOKEN_FILE = "freeboxvm_token.json"
 
@@ -1206,15 +1206,15 @@ def parse_args():
                             help="Attacher la console de la VM au démarrage")
     sp_install.add_argument("--vnc-proxy", "-v", action="store_true",
                             help="Exposer le VNC de la VM sur un port TCP local au démarrage")
-    sp_install.add_argument("--listen", "-l", default="127.0.0.1",
-                            help="Adresse d'écoute (défaut 127.0.0.1)")
-    sp_install.add_argument("--port", "-p", type=int, default=5901,
-                            help="Port TCP local (défaut 5901)")
+    sp_install.add_argument("--listen", "-l", metavar="ADDR", default="127.0.0.1",
+                            help="Adresse d'écoute (par défaut 127.0.0.1)")
+    sp_install.add_argument("--port", "-p", metavar="N", type=int, default=5901,
+                            help="Port TCP local (par défaut 5901)")
     sp_install.add_argument("--install", "-i",
                             help="Identifiant court de la distribution à installer (voir os-list)")
     sp_install.add_argument("--name", "-n", help="Nom de la VM")
-    sp_install.add_argument("--memory", help="Taille mémoire de la VM")
-    sp_install.add_argument("--vcpus", help="Nombre de vCPU")
+    sp_install.add_argument("--memory", type=int, help="Taille mémoire de la VM (en Mo)")
+    sp_install.add_argument("--vcpus", type=int, help="Nombre de vCPU")
     sp_install.add_argument("--cdrom", help="Chemin de l'image CDROM")
     sp_install.add_argument("--location", help="URL du CD de démarrage")
     sp_install.add_argument("--disk", help="Image disque")
@@ -1240,10 +1240,10 @@ def parse_args():
     sp_vnc = sub.add_parser("vnc-proxy",
                             help="Exposer le VNC de la VM sur un port TCP local")
     sp_vnc.add_argument("vm", help="ID ou nom de la VM")
-    sp_vnc.add_argument("--listen", "-l", default="127.0.0.1",
-                        help="Adresse d'écoute (défaut 127.0.0.1)")
-    sp_vnc.add_argument("--port", "-p", type=int, default=5901,
-                        help="Port TCP local (défaut 5901)")
+    sp_vnc.add_argument("--listen", "-l", metavar="ADDR", default="127.0.0.1",
+                        help="Adresse d'écoute (par défaut 127.0.0.1)")
+    sp_vnc.add_argument("--port", "-p", metavar="N", type=int, default=5901,
+                        help="Port TCP local (par défaut 5901)")
     sp_vnc.add_argument("--console", action="store_true",
                         help="Attacher également la console de la VM")
 
@@ -1254,10 +1254,10 @@ def parse_args():
                             help="Attacher également la console de la VM")
     sp_poweron.add_argument("--vnc-proxy", "-v", action="store_true",
                             help="Exposer également le VNC de la VM sur un port TCP local")
-    sp_poweron.add_argument("--listen", "-l", default="127.0.0.1",
-                            help="Adresse d'écoute (défaut 127.0.0.1)")
-    sp_poweron.add_argument("--port", "-p", type=int, default=5901,
-                            help="Port TCP local (défaut 5901)")
+    sp_poweron.add_argument("--listen", "-l", metavar="ADDR", default="127.0.0.1",
+                            help="Adresse d'écoute (par défaut 127.0.0.1)")
+    sp_poweron.add_argument("--port", "-p", metavar="N", type=int, default=5901,
+                            help="Port TCP local (par défaut 5901)")
 
     # poweroff
     sp_poweroff = sub.add_parser("poweroff",

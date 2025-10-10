@@ -15,27 +15,26 @@ via the Freebox OS API v8.
 - Packages: `requests`, `websockets`, `tqdm`, `humanize`, `PyGObject`
   (for **libosinfo** support)
 
-Install with:
+## Installation
 
 ```bash
 pip install .
 ```
 
-To install dependencies without packaging metadata (for development or
-legacy environments), use:
-
+To install the dependencies without packaging metadata (for development
+or legacy environments):
 
 ```bash
 pip install -r requirements.txt
 ```
 
-On Fedora you may also need:
+On Fedora you may need:
 
 ```bash
 sudo dnf install python3-gobject gobject-introspection libosinfo osinfo-db
 ```
 
-On Debian/Ubuntu you may also need:
+On Debian/Ubuntu you may need:
 
 ```bash
 sudo apt install python3-gi gir1.2-libosinfo-1.0
@@ -46,31 +45,62 @@ sudo apt install python3-gi gir1.2-libosinfo-1.0
 ## Usage
 
 ### List VMs
+
 ```bash
 freeboxvm list [--long] [--usb-ports] [--disks] [--cloud-init]
 ```
-- **Default output** shows: `ID  STATUS  NAME`.
-- **--long** adds columns: `OS  MAC  VCPUs  MEMORY  DISPLAY`.
-- **--usb-ports** prints bound USB ports (or "No USB ports").
-- **--disks** prints disk image path/type and optional CD image path.
-- **--cloud-init** prints cloud-init status, hostname and user-data.
 
-Examples:
+**Default output**: `ID  STATUS  NAME`.
+
+<div>
+  <table style="border: none;">
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;long</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;l</strong></td>
+      <td>Show more information</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;usb&#8209;ports</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;u</strong></td>
+      <td>List associated USB ports</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;disks</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;d</strong></td>
+      <td>List disk images</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;cloud&#8209;init</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;c</strong></td>
+      <td>Show cloud-init information</td>
+    </tr>
+  </table>
+</div>
+
+#### Examples
+
+##### Short view
+
 ```bash
-# Short view
-freeboxvm list
+$ freeboxvm list
 ID  STATUS   NAME
 0   running  Debian-11
 1   stopped  Ubuntu-22.04
+```
 
-# Long view with USB ports
-freeboxvm list --long --usb-ports
+##### Long view with USB ports
+
+```bash
+$ freeboxvm list --long --usb-ports
 ID  STATUS   NAME        OS      MAC               VCPUs  MEMORY  DISPLAY
 0   running  Debian-11   debian  aa:bb:cc:dd:ee:ff 2      2048    True
     USB ports: usb-external-type-a
+```
 
-# Disk and cloud-init details
-freeboxvm list --disks --cloud-init
+##### Disk and cloud-init details
+
+```bash
+$ freeboxvm list --disks --cloud-init
 0   running  Debian-11
     Disk image: Disque 1/VMs/debian.qcow2 (qcow2)
     CD image: Disque 1/VMs/debian-11.iso
@@ -84,40 +114,103 @@ default_user:
 
 ---
 
-### Show a single VM
+### Show a VM
+
 ```bash
 freeboxvm show <id|name> [--long] [--usb-ports] [--disks] [--cloud-init]
 ```
-Display information for a single VM. Supports the same optional flags as
-`list`:
 
-- **--long, -l**       : add OS, MAC, vCPUs, memory, display flag
-- **--usb-ports, -u**  : show bound USB ports
-- **--disks, -d**      : show disk image path/type and CD image
-- **--cloud-init, -c** : show cloud-init status, hostname and user-data
+Displays information about a single VM. Supports the same options as `list`.
 
-Examples:
+<div>
+  <table style="border: none;">
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;long</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;l</strong></td>
+      <td>Show more information</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;usb&#8209;ports</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;u</strong></td>
+      <td>List associated USB ports</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;disks</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;d</strong></td>
+      <td>List disk images</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;cloud&#8209;init</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;c</strong></td>
+      <td>Show cloud-init information</td>
+    </tr>
+  </table>
+</div>
+
+#### Examples
+
 ```bash
-freeboxvm show 12
-freeboxvm show Debian-11 --long
-freeboxvm show 12 --disks --cloud-init
+$ freeboxvm show 1
+ID    STATUS    NAME
+1    stopped    Ubuntu-22.04
+```
+
+```bash
+$ freeboxvm show Debian-11 --long
+ID  STATUS   NAME        OS      MAC               VCPUs  MEMORY  DISPLAY
+0   running  Debian-11   debian  aa:bb:cc:dd:ee:ff 2      2048    True
+```
+
+```bash
+$ freeboxvm show 1 --disks --cloud-init
+ID    STATUS    NAME
+1    stopped    Ubuntu-22.04
+    Disk image: Disque 1/VMs/ubuntu2204.qcow2 (qcow2)
+    No CDROM device image
+    Cloud-init hostname: Ubuntu
+    Cloud-init user-data:
+#cloud-config
+system_info:
+  default_user:
+    name: laurent
+  groups:
+    - laurent
 ```
 
 ---
 
 ### Connect to a VM console
+
 ```bash
 freeboxvm console <id|name>
 ```
 
-- Exit with **Ctrl-B D**.
-- Send a literal **Ctrl-B** to the VM with **Ctrl-B B**.
-- Reset the VM with **Ctrl-B R**
-- Halt the VM with **Ctrl-B H**
-- Stop the VM with **Ctrl-B S**
-- Display Ctrl-B help with **Ctrl-B ?**
+Console control key combinations:
 
-Examples:
+<div>
+<table style="border: none;">
+  <tr>
+    <td style="border: none"><strong>Ctrl-B D</strong></td><td>Quit</td></tr>
+  <tr>
+    <td style="border: none"><strong>Ctrl-B B</strong></td><td>Send a literal <strong>Ctrl-B</strong></td>
+  </tr>
+  <tr>
+    <td style="border: none;"><strong>Ctrl-B R</strong></td><td>Reset the VM</td>
+  </tr>
+  <tr>
+    <td style="border: none"><strong>Ctrl-B H</strong></td><td>Halt the VM</td>
+  </tr>
+  <tr>
+    <td style="border: none"><strong>Ctrl-B S</strong></td><td>Immediately stop the VM</td>
+  </tr>
+  <tr>
+    <td style="border: none"><strong>Ctrl-B ?</strong></td><td>Show help about key bindings</td>
+  </tr>
+</table>
+</div>
+
+#### Examples
+
 ```bash
 freeboxvm console 0
 freeboxvm console Debian-11
@@ -125,178 +218,349 @@ freeboxvm console Debian-11
 
 ---
 
-### Expose a VM screen via VNC proxy
+### Expose a VM screen through a VNC proxy
+
 ```bash
-freeboxvm vnc-proxy [options] <id|name>
+freeboxvm vnc-proxy [-h] [--listen ADDR] [--port N] [--console] vm
 ```
 
-Exposes the VM’s VNC-over-WebSocket screen on a local TCP port for use
-with any standard VNC client.
+Expose the VM’s VNC screen on a local TCP port.
 
-- `-l, --listen A` : Bind address (default `127.0.0.1`).
-- `-p, --port P`   : Local TCP port (default `5901`).
-- `--console`      : Run the interactive console in parallel with the
-  VNC proxy.
+<div>
+  <table style="border: none;">
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;listen ADDR</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;l ADDR</strong></td>
+      <td>Listening address (default 127.0.0.1)</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;port N</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;p N</strong></td>
+      <td>TCP port (default 5901)</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;console</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>Launch the interactive console in parallel</td>
+    </tr>
+  </table>
+</div>
 
-Examples:
+#### Examples
+
+##### VNC proxy for VM 0 on localhost:5901
+
 ```bash
-# Start a VNC proxy for VM id 0 on localhost:5901
 freeboxvm vnc-proxy 0
+```
 
-# Start proxy for VM id 12, binding on all interfaces, port 5902
+##### Proxy for VM 12 on all interfaces, port 5902
+
+```bash
 freeboxvm vnc-proxy --listen 0.0.0.0 --port 5902 12
+```
 
-# Run proxy and console together for a VM by name
+##### Proxy and console for a VM by name
+
+```bash
 freeboxvm vnc-proxy --console Debian-11
 ```
 
 ---
 
-### Manage disk images
+### Manage disks
+
 ```bash
-freeboxvm disk <action> [options] <args>
+freeboxvm disk [-h] {create,info,resize,delete} ...
 ```
 
-Manage VM disk images (create, resize, inspect, delete). Sizes accept
-binary suffixes `k`, `m`, `g`, `t` (powers of two); raw bytes are also
-accepted.
+Manage VM disk images (creation, resizing, inspection, deletion).
+Sizes accept binary suffixes `k`, `m`, `g`, `t` (powers of two); raw
+byte values are also accepted.
 
 Actions:
 
 - **create**
+
   ```bash
-  freeboxvm disk create [--type qcow2] <path> <size>
+  freeboxvm disk create [-h] [--type TYPE] <path> <size>
   ```
-  Create a new disk image (default type `qcow2`).
+
+  Create a disk image (default qcow2).
 
 - **resize**
+
   ```bash
-  freeboxvm disk resize [--shrink-allow] <path> <new-size>
+  freeboxvm disk resize [-h] [--shrink-allow] <path> <size>
   ```
-  Resize an existing disk image. Use `--shrink-allow` to permit
-  shrinking (can be destructive).
+
+  Resize a disk image (`--shrink-allow` permits shrinking).
 
 - **info**
+
   ```bash
   freeboxvm disk info <path>
   ```
-  Display virtual size, actual space used, and type.
+
+  Display virtual size, used size, type.
 
 - **delete**
+
   ```bash
   freeboxvm disk delete <path>
   ```
+
   Delete a disk image.
 
-Examples:
+#### Examples
+
+##### Create a 10 GiB qcow2 disk
+
 ```bash
-# Create a 10 GiB qcow2 image
 freeboxvm disk create "/Disque 1/VMs/disk1.qcow2" 10g
+```
 
-# Grow a disk to 20 GiB
+##### Resize a disk to 20 GiB
+
+```bash
 freeboxvm disk resize "/Disque 1/VMs/disk1.qcow2" 20g
+```
 
-# Allow destructive shrink to 8 GiB
+##### Force a destructive resize (reduce size)
+
+```bash
 freeboxvm disk resize --shrink-allow "/Disque 1/VMs/disk1.qcow2" 8g
+```
 
-# Show disk details
+##### Show disk information
+
+```bash
 freeboxvm disk info "/Disque 1/VMs/disk1.qcow2"
+```
 
-# Delete a disk
+##### Delete a disk
+
+```bash
 freeboxvm disk delete "/Disque 1/VMs/disk1.qcow2"
 ```
 
 ---
 
 ### Install a new VM
+
 ```bash
 freeboxvm install [options]
 ```
-Create and boot a new VM from either a cloud image or an install ISO.
-Optionally attach the console and/or start a local VNC proxy.
 
-Options:
-- `-i, --install ID`             : distro short-id (see `os-list` or `--extra` for cloud-init images, `--iso` for ISOs)
-- `-n, --name NAME`              : VM name
-- `--os NAME`                    : OS name (if not inferred)
-- `--vcpus N`                    : number of virtual CPUs
-- `--memory N`                   : memory size in MiB
-- `--disk PATH`                  : disk image path
-- `--disk-size SIZE`             : disk size (accepts k/m/g/t suffixes or raw bytes)
-- `--cdrom PATH`                 : ISO path (for installs from ISO)
-- `--location URL`               : boot CD/image URL (mutually exclusive with `--cdrom`)
-- `--cloud-init`                 : enable cloud-init
-- `--cloud-init-hostname NAME`   : cloud-init hostname
-- `--cloud-init-userdata FILE`   : cloud-init user-data file
-- `--enable-screen`              : enable VM screen (VNC-over-WebSocket on Freebox)
-- `-c, --console`                : attach console after boot
-- `-v, --vnc-proxy`              : start VNC proxy after boot (requires `--enable-screen`)
-- `-l, --listen ADDR`            : bind address for VNC proxy (default `127.0.0.1`)
-- `-p, --port N`                 : TCP port for VNC proxy (default `5901`)
-- `--usb-ports LIST`             : bind USB ports to the VM (comma-separated)
+Create and start a VM from a cloud image or an ISO.
+Can also attach a console and/or VNC proxy.
 
-Notes:
-- When `--install` or `--location` is provided, the image is downloaded
-  via the Freebox Download Manager to the default directory `/Disque 1/VMs/`,
-  with progress, checksum verification, and cleanup on error.
+<div>
+  <table style="border: none;">
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;install ID</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;i ID</strong></td>
+      <td>Distribution identifier (see <code>os-list</code>).</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;name</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;n NAME</strong></td>
+      <td>VM name.</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;os</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>OS name (if not detected).</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;vcpus</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>Number of virtual CPUs.</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;memory</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>Memory (MiB).</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;disk PATH</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>Disk image path.</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;disk&#8209;size</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>Disk size.</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;cdrom PATH</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>Installation ISO.</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;location URL</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>CD/ISO URL (mutually exclusive with <code>--cdrom</code>).</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;cloud&#8209;init</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>Enable cloud-init.</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;cloud&#8209;init&#8209;hostname</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>Hostname.</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;cloud&#8209;init&#8209;userdata FILE</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>User-data file.</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;enable&#8209;screen</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>Enable screen (VNC-over-WebSocket).</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;console</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>Attach console after boot.</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;vnc&#8209;proxy</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>Start VNC proxy after boot.</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;listen ADDR</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>VNC listen address (default 127.0.0.1).</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;port N</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>VNC TCP port (default 5901).</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;usb&#8209;ports LIST</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong> </strong></td>
+      <td>Bind USB ports to the VM (comma-separated list).</td>
+    </tr>
+  </table>
+</div>
+
+#### Notes
+
+- When `--install` or `--location` is used, the image is downloaded via
+  the Freebox Download Manager into the default directory
+  `/Disque 1/VMs/`, with progress tracking, checksum verification, and
+  cleanup on error.
 - For cloud images, the downloaded file becomes the VM disk image.
-- If `--disk` points to a non-existent file, `--disk-size` must be provided
-  so the tool can create the image (qcow2/raw type inferred by extension).
-- Disks can be resized automatically if smaller than `--disk-size`.
+- If `--disk` points to a non-existent file, `--disk-size` must be
+  provided so the tool can create the image (qcow2/raw type inferred
+  from the extension).
+- Disks can be resized automatically if they are smaller than the size
+  specified by `--disk-size`.
 
-Flow:
-1. Resolve short-id or URL and download image if needed.
-2. Create or resize the VM disk as required.
-3. Configure VM properties (`--name`, `--os`, `--vcpus`, `--memory`).
-4. Apply cloud-init if enabled.
-5. POST `/vm/` to create, then `/vm/<id>/start` to boot.
-6. Optionally attach console and/or start VNC proxy.
+#### Examples
 
-Examples:
+##### Install from a cloud image short-id and attach the console
+
 ```bash
-# Install from a distro short-id as a cloud image, enable cloud-init, attach console
-freeboxvm install -n Fedora-cloud --vcpus 1 --memory 512 --console   --cloud-init --cloud-init-hostname Fabulous   --cloud-init-userdata cloud-init-user-data.yaml   -i fedora41 --disk Fabulous.qcow2 --disk-size 10g
-
-# Install from a CDROM install URL, attach console and vnc-proxy
-freeboxvm install -n Fedora-test --os fedora   --location https://download.fedoraproject.org/pub/fedora/linux/releases/41/Everything/aarch64/iso/Fedora-Everything-netinst-aarch64-41-1.4.iso   --disk "/Disque 1/VMs/test.qcow2" --disk-size 20g   --vcpus 2 --memory 2048 --console --vnc-proxy --enable-screen
+freeboxvm install -n Fedora-cloud --vcpus 1 --memory 512 --console \
+  --cloud-init --cloud-init-hostname Fabulous \
+  --cloud-init-userdata cloud-init-user-data.yaml \
+  -i fedora41 --disk Fabulous.qcow2 --disk-size 10g
 ```
 
+##### Install from a CDROM URL, attach console and VNC proxy
+
+```bash
+freeboxvm install -n Fedora-test --os fedora \
+  --location https://download.fedoraproject.org/pub/fedora/linux/releases/41/Everything/aarch64/iso/Fedora-Everything-netinst-aarch64-41-1.4.iso \
+  --disk "/Disque 1/VMs/test.qcow2" --disk-size 20g \
+  --vcpus 2 --memory 2048 --console --vnc-proxy --enable-screen
+```
+
+---
 
 ### Power on a VM
+
 ```bash
 freeboxvm poweron <id|name> [--console|-c] [--vnc-proxy|-v]
                    [--listen|-l ADDR] [--port|-p N]
 ```
-- Boots the VM, then (optionally) attaches the console and/or starts the
-  VNC proxy.
-- `--console, -c`     : attach interactive console (detach Ctrl-B D)
-- `--vnc-proxy, -v`   : expose VNC over a local TCP port
-- `--listen, -l ADDR` : bind address for VNC proxy (default 127.0.0.1)
-- `--port, -p N`      : TCP port for VNC proxy (default 5901)
 
-Examples:
+Starts the VM then (optionally) attaches the console and/or launches the VNC proxy.
+
+<div>
+  <table style="border: none;">
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;console</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;c</strong></td>
+      <td>Attach an interactive console (detach with Ctrl-B D)</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;vnc&#8209;proxy</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;v</strong></td>
+      <td>Expose VNC on a local TCP port</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;listen ADDR</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;l ADDR</strong></td>
+      <td>Listen address for the VNC proxy (default 127.0.0.1)</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;port N</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;p N</strong></td>
+      <td>VNC proxy TCP port (default 5901)</td>
+    </tr>
+  </table>
+</div>
+
+#### Examples
+
+##### Power on and attach the console
+
 ```bash
-# Power on and attach console
 freeboxvm poweron 12 --console
+```
 
-# Power on and start VNC proxy on 0.0.0.0:5902
+##### Power on and start the VNC proxy on 0.0.0.0:5902
+
+```bash
 freeboxvm poweron 12 --vnc-proxy -l 0.0.0.0 -p 5902
+```
 
-# Power on, attach console and run VNC proxy together
+##### Power on and start both console and VNC proxy
+
+```bash
 freeboxvm poweron Debian-11 -c -v
 ```
 
 ---
 
 ### Power off a VM
+
 ```bash
 freeboxvm poweroff [-f|--force] <id|name>
 ```
 
-- Requests ACPI shutdown of the specified VM.
-- With `-f`/`--force`, sends a hard stop instead.
+Requests an ACPI shutdown of the specified VM.
 
-Examples:
+<div>
+  <table style="border: none;">
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;force</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;f</strong></td>
+      <td>Send a forced stop (hard stop).</td>
+    </tr>
+  </table>
+</div>
+
+#### Examples
+
 ```bash
 freeboxvm poweroff 0
 freeboxvm poweroff --force Debian-11
@@ -305,11 +569,13 @@ freeboxvm poweroff --force Debian-11
 ---
 
 ### Reset a VM
+
 ```bash
 freeboxvm reset <id|name>
 ```
 
-Examples:
+#### Examples
+
 ```bash
 freeboxvm reset 0
 freeboxvm reset Debian-11
@@ -318,93 +584,188 @@ freeboxvm reset Debian-11
 ---
 
 ### Delete a VM
+
 ```bash
-freeboxvm delete <id|name>
-- `--disk, -d`     : Also delete disks and efivars
-- `--force, -f`    : Delete a running VM
+freeboxvm delete <id|name> [--disk|-d] [--force|-f]
 ```
-Remove the specified virtual machine by its numeric **id** or **name**.
-Consider powering off the VM first if deletion fails.
+
+Delete the virtual machine identified by numeric ID or name.
+If deletion fails, try powering off the VM first.
+
+<div>
+  <table style="border: none;">
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;disk</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;d</strong></td>
+      <td>Also delete disks and efivars</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;force</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;f</strong></td>
+      <td>Delete a running VM</td>
+    </tr>
+  </table>
+</div>
 
 ---
 
-### Display Freebox system info
+### Freebox system info
+
 ```bash
 freeboxvm system
 ```
 
-- Shows overall Freebox resources:
-  - Total and used memory
-  - Total and used CPUs
-  - USB allocation status
-  - List of available USB ports
-  - Path of VMs directory
+Displays global Freebox resources:
+
+- Total and used memory
+- Total and used CPUs
+- USB allocation state
+- List of available USB ports
+- Path to the VMs directory
+
+#### Examples
+
+```bash
+$ freeboxvm system
+Total memory: 2048    Used memory: 0    (0.0 %)
+Number of CPU: 2    CPUs used: 0    (0.0 %)
+External USB allocated: No
+Available USB ports:
+   usb-external-type-a
+VMs directory path: /Disque 1/VMs
+```
 
 ---
 
 ### List installable distributions
+
 ```bash
 freeboxvm os-list [options]
 ```
 
-Lists installable operating system images for VMs.
+List operating system images that can be installed for VMs.
 
-Options:
-- `-e, --extra`: Query external sources via **libosinfo** for cloud-init images
-  (aarch64, qcow2/raw).
-- `-i, --iso`  : List installable ISOs instead of cloud images.
-- `-l, --long` : Show detailed info (OS, distro, URL, checksum, live flag).
-- `-c, --check`: Validate image and checksum URLs.
-- `-o, --os`   : Filter results by OS name (e.g. `fedora`, `ubuntu`).
+<div>
+  <table style="border: none;">
+    <tr>
+      <td style="border: none"><strong>&#8209;&#8209;extra</strong></td><td style="border: none"><strong>&#8209;e</strong></td><td>Query external sources via libosinfo for cloud-init images (aarch64, qcow2/raw).</td>
+    </tr>
+    <tr>
+      <td style="border: none"><strong>&#8209;&#8209;iso</strong></td><td style="border: none"><strong>&#8209;i</strong></td><td>List installable ISOs instead of cloud images.</td>
+    </tr>
+    <tr>
+      <td style="border: none"><strong>&#8209;&#8209;long</strong></td><td style="border: none"><strong>&#8209;l</strong></td><td>Show detailed information (OS, distribution, URL, checksum, live flag).</td>
+    </tr>
+    <tr>
+      <td style="border: none"><strong>&#8209;&#8209;check</strong></td><td style="border: none"><strong>&#8209;c</strong></td><td>Validate image and checksum URLs.</td>
+    </tr>
+    <tr>
+      <td style="border: none"><strong>&#8209;&#8209;os</strong></td><td style="border: none"><strong>&#8209;o</strong></td><td>Filter results by OS name (e.g. fedora, ubuntu).</td>
+    </tr>
+  </table>
+</div>
 
-Examples:
+#### Examples
+
+##### List all available distributions
+
 ```bash
-# List all available distributions
 freeboxvm os-list
+```
 
-# Show detailed info
+##### Show detailed information
+
+```bash
 freeboxvm os-list --long
+```
 
-# Validate URLs
+##### Validate URLs
+
+```bash
 freeboxvm os-list --check --long
+```
 
-# List installable ISOs
+##### List installable ISOs
+
+```bash
 freeboxvm os-list --iso
+```
 
-# Filter by OS (e.g. only Fedora)
+##### Filter by OS (e.g. only Fedora)
+
+```bash
 freeboxvm os-list --os fedora
 ```
 
 ---
 
 ### Download an image
+
 ```bash
 freeboxvm download [options] [short-id]
 ```
 
 Download a VM installation image (disk or ISO) using the Freebox Download Manager.
 
-Options:
-- `-i, --iso`        : Select an install ISO rather than a cloud/disk image.
-- `-u, --url URL`    : Provide a direct URL instead of using a `short-id`.
-- `-a, --hash HASH`  : Provide checksum URL when using `--url`.
-- `-f, --filename F` : Filename to store the file.
-- `-d, --directory D`: Freebox directory to store the file (base64 encoded automatically).
-- `-b, --background` : Run download in background (progress not shown; check in Freebox "Téléchargements").
+<div>
+  <table style="border: none;">
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;iso</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;i</strong></td>
+      <td>Select an installation ISO instead of a cloud/disk image.</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;url URL</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;u URL</strong></td>
+      <td>Provide a direct URL instead of a short-id.</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;hash HASH</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;a HASH</strong></td>
+      <td>Provide the checksum URL when using --url.</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;filename F</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;f F</strong></td>
+      <td>Filename to save as.</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;directory D</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;d D</strong></td>
+      <td>Freebox directory to store the file (automatically base64 encoded).</td>
+    </tr>
+    <tr>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;&#8209;background</strong></td>
+      <td style="border: none; white-space: nowrap;"><strong>&#8209;b</strong></td>
+      <td>Download in background mode (progress hidden; monitor in the Freebox "Downloads" section).</td>
+    </tr>
+  </table>
+</div>
 
-Examples:
+#### Examples
+
+##### Download a Fedora cloud-init image via short-id
+
 ```bash
-# Download a Fedora cloud-init image by short-id
-freeboxvm download fedora
+freeboxvm download fedora40
+```
 
-# Download an Ubuntu ISO instead of a cloud image
-freeboxvm download --iso ubuntu
+##### Download an Ubuntu ISO instead of a cloud image
 
-# Provide a custom URL and checksum
+```bash
+freeboxvm download --iso ubuntu24.04
+```
+
+##### Provide a custom URL and checksum
+
+```bash
 freeboxvm download --url https://cloud-images.ubuntu.com/.../disk.qcow2 \
                    --hash https://cloud-images.ubuntu.com/.../SHA256SUMS
+```
 
-# Download in background mode
+##### Download in background mode
+
+```bash
 freeboxvm download --background fedora
 ```
 
