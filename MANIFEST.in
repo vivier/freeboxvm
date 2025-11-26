@@ -1,0 +1,10 @@
+include LICENSE
+include README.md
+include README.en.md
+include requirements.txt
+include cloud-init-user-data.yaml
+include freeboxvm
+include freeboxvm.spec
+include man/man1/freeboxvm.1
+include src/freeboxvm.py
+include src/freeboxvm_version.py
