@@ -23,9 +23,13 @@ DEVICE_NAME	= platform.node()
 
 API_URL		= "http://mafreebox.freebox.fr/api/v8"
 
-TOKEN_FILE = "freeboxvm_token.json"
+DEFAULT_TOKEN_FILE = os.path.join("~", ".config", "freeboxvm", "freeboxvm_token.json")
 
-def load_app_token():
+def resolve_token_path(token_file):
+    """Expand user shorthand for token paths."""
+    return os.path.expanduser(token_file)
+
+def load_app_token(token_file):
     """Load persisted Freebox application token and track_id from disk.
 
     Returns
@@ -33,13 +37,14 @@ def load_app_token():
     tuple[str|None, str|None]
         (app_token, track_id) if present; (None, None) otherwise.
     """
-    if os.path.exists(TOKEN_FILE):
-        with open(TOKEN_FILE, "r") as file:
+    token_path = resolve_token_path(token_file)
+    if os.path.exists(token_path):
+        with open(token_path, "r") as file:
             data = json.load(file)
             return data["app_token"], data["track_id"]
     return None, None
 
-def save_app_token(app_token, track_id):
+def save_app_token(app_token, track_id, token_file):
     """Persist Freebox application token and track_id to disk.
 
     Parameters
@@ -49,7 +54,11 @@ def save_app_token(app_token, track_id):
     track_id : str
         Tracking identifier returned by the authorization API.
     """
-    with open(TOKEN_FILE, "w") as file:
+    token_path = resolve_token_path(token_file)
+    token_dir = os.path.dirname(token_path)
+    if token_dir:
+        os.makedirs(token_dir, exist_ok=True)
+    with open(token_path, "w") as file:
         json.dump({"app_token": app_token, "track_id": track_id}, file)
 
 def api_request(method, endpoint, session_token=None, **kwargs):
@@ -100,7 +109,7 @@ def api_request(method, endpoint, session_token=None, **kwargs):
         print(f"Erreur de décodage JSON sur {endpoint}")
     return None
 
-def freebox_connect():
+def freebox_connect(token_file):
     """Establish a Freebox OS API session token.
 
     1) Load stored app token/track_id; otherwise request authorization and poll
@@ -118,7 +127,7 @@ def freebox_connect():
     May persist the app token to disk. Logs status messages to journald.
     """
     # Charger le token depuis le fichier ou obtenir une nouvelle autorisation
-    app_token, track_id = load_app_token()
+    app_token, track_id = load_app_token(token_file)
     if not app_token or not track_id:
         auth_data = api_request("post", "/login/authorize/", json={
             "app_id": APP_ID, "app_name": APP_NAME,
@@ -126,7 +135,7 @@ def freebox_connect():
         })
         if not auth_data: return None
         track_id, app_token = auth_data['track_id'], auth_data['app_token']
-        save_app_token(app_token, track_id)
+        save_app_token(app_token, track_id, token_file)
         print("Veuillez accepter l'application sur la Freebox")
         max_retries = 24
         for i in range(max_retries):
@@ -154,7 +163,7 @@ def freebox_connect():
 
     login_data = api_request("post", "/login/session/", json={"app_id": APP_ID, "password": password})
     if login_data == "forbidden":
-        print(f"Fichier token invalide {TOKEN_FILE}")
+        print(f"Fichier token invalide {resolve_token_path(token_file)}")
         return None
     return login_data['session_token'] if login_data else None
 
@@ -1144,6 +1153,8 @@ def parse_args():
 
     p.add_argument("--version", action="version",
                    version=f"%(prog)s {__version__}")
+    p.add_argument("--token-file", default=DEFAULT_TOKEN_FILE,
+                   help="Chemin du fichier token (défaut: %(default)s)")
 
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -1323,7 +1334,9 @@ def main():
 
     args = parse_args()
 
-    session_token = freebox_connect()
+    token_file = args.token_file
+
+    session_token = freebox_connect(token_file)
     if not session_token:
         print("Freebox inaccessible.")
         return

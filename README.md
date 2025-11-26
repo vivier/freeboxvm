@@ -40,6 +40,10 @@ Sur Debian/Ubuntu, vous pourriez avoir besoin de :
 sudo apt install python3-gi gir1.2-libosinfo-1.0
 ```
 
+## Authentification et fichier token
+
+Lors de la première exécution, l’outil suit le flux d’autorisation Freebox et enregistre l’app_token et le track_id dans `~/.config/freeboxvm/freeboxvm_token.json`. Utilisez `--token-file` pour cibler un autre emplacement (utile pour plusieurs Freebox ou comptes) ; le raccourci `~` est accepté.
+
 ---
 
 ## Utilisation

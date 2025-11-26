@@ -21,6 +21,9 @@ that lets you list, inspect, install, control, and delete virtual machines on th
 .TP
 .BR --version
 Print the program version and exit.
+.TP
+.BR --token-file " " \fIFILE\fR
+Override the application token file location (default \fB~/.config/freeboxvm/freeboxvm_token.json\fR).
 .SH COMMANDS
 .SS system
 Display host resource information reported by the Freebox, including memory usage, CPU allocation, USB status, and available USB ports.
@@ -234,8 +237,8 @@ Disk image path.
 .RE
 .SH FILES
 .TP
-\fBfreeboxvm_token.json\fR
-Stores the application token and track ID issued by the Freebox authorization flow.
+\fB~/.config/freeboxvm/freeboxvm_token.json\fR
+Default location for the application token and track ID issued by the Freebox authorization flow.
 .SH EXAMPLES
 .TP
 List all VMs with disk and cloud-init details:
