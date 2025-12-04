@@ -17,6 +17,15 @@ d’une Freebox via l’API Freebox OS v8.
 
 ## Installation :
 
+Sur Fedora, le RPM `freeboxvm` peut être installé depuis le COPR :
+
+```bash
+sudo dnf copr enable lvivier/freebox-failover
+sudo dnf install freeboxvm
+```
+
+Sinon en utilisant l'environnement PyPI depuis le répertoire source:
+
 ```bash
 pip install .
 ```
