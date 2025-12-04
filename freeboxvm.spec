@@ -12,15 +12,6 @@ BuildArch:      noarch
 
 BuildRequires:  python3-devel
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python3dist(packaging)
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(wheel)
-BuildRequires:  python3dist(websockets) >= 12
-BuildRequires:  python3dist(requests)
-BuildRequires:  python3dist(humanize)
-BuildRequires:  python3dist(tqdm)
-BuildRequires:  python3dist(pygobject)
 
 Requires:       python3dist(requests)
 Requires:       python3dist(websockets) >= 12
@@ -28,6 +19,9 @@ Requires:       python3dist(tqdm)
 Requires:       python3dist(humanize)
 
 Provides:       %{pypi_name} = %{version}-%{release}
+
+%generate_buildrequires
+%pyproject_buildrequires
 
 %description
 
